@@ -82,9 +82,85 @@ class SOTGraphView(QGraphicsView):
         return xCoord, sceneHeight - yCoord
 
 
-app = QApplication([])
+class DotDataGenerator:
+    def __init__(self) -> None:
+        self._graphContentStr = ""
+        self._rankdir = 'LR' # TODO: make it a graph attribute
 
-window = MainWindow()
-window.show()
 
-app.exec()
+    def getDotString(self) -> None:
+        finalStr = "digraph newGraph {\n"
+        finalStr += f"\trankdir={self._rankdir}\n"
+        finalStr += self._graphContentStr
+        finalStr += "}\n"
+        return finalStr
+
+
+    def getEncodedDotString(self) -> None:
+        return self.getDotString().encode()
+
+    
+    def addNode(self, name: str, attributes: dict = None) -> None:
+        # The name cannot contain a colon, as this character is used to work with ports 
+        if ':' in name:
+            raise ValueError("Node name cannot contain a colon ':'")
+
+        nodeStr = f"\t{name}"
+
+        if attributes is not None and len(attributes) > 0:
+            nodeStr += " ["
+            for i, key in enumerate(attributes):
+                nodeStr += f"{key}={str(attributes[key])}"
+                if i < len(attributes) - 1:
+                    nodeStr += ", "
+            nodeStr += "]"
+
+        nodeStr += "\n"
+        self._graphContentStr += nodeStr
+
+    
+    def addEdge(self, start: str, end: str, attributes: dict = None) -> None:
+        edgeStr = f"\t{start} -> {end}"
+
+        if attributes is not None and len(attributes) > 0:
+            edgeStr += " ["
+            for i, key in enumerate(attributes):
+                edgeStr += f"{key}={str(attributes[key])}"
+                if i < len(attributes) - 1:
+                    edgeStr += ", "
+            edgeStr += "]"
+
+        edgeStr += "\n"
+        self._graphContentStr += edgeStr
+
+
+    def setRankdir(self, rankdir: str) -> None:
+        self._rankdir = rankdir
+
+
+    def setGraphAttributes(self, attributes: dict) -> None:
+        ... #TODO
+
+
+    def setNodeAttributes(self, attributes: dict) -> None:
+        ... #TODO
+
+
+    def setEdgeAttributes(self, attributes: dict) -> None:
+        ... #TODO
+
+
+# app = QApplication([])
+
+# window = MainWindow()
+# window.show()
+
+# app.exec()
+
+dotData = DotDataGenerator()
+dotData.addNode("add1")
+dotData.addNode("add2")
+dotData.addEdge("add1", "add2", {'label':'"aaah"', 'color':'red'})
+
+print(dotData.getDotString())
+
