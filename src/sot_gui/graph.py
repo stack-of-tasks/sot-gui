@@ -29,15 +29,15 @@ class Node:
 
     def inputs(self) -> Dict[str, Edge]:
         return self._inputs.copy()
-    def addInput(self, name: str, input: Edge) -> None:
-        self._inputs[name] = input
+    def addInput(self, plugName: str, input: Edge) -> None:
+        self._inputs[plugName] = input
         input.setHead(self)
 
 
     def outputs(self) -> Dict[str, Edge]:
         return self._outputs.copy()
-    def addOutput(self, name: str, output: Edge) -> None:
-        self._outputs[name] = output
+    def addOutput(self, plugName: str, output: Edge) -> None:
+        self._outputs[plugName] = output
         output.setTail(self)
 
 
@@ -160,14 +160,13 @@ class Graph:
         # linked to itself through this signal
         if childEntityName == linkedPlugInfo['entityName']:
             # If the signal is autoplugged, we add an InputNode to the graph
-            ... # TODO: add 
+            # to represent the input value
+            newNode = InputNode(newEdge.valueType())
+            newNode.addOutput(linkedPlugInfo['name'], newEdge)
         else:
             # If the signal is not autoplugged, we link it to the parent entity
             parentEntity = self._getEntityPerName(linkedPlugInfo['name'])
             parentEntity.addOutput(linkedPlugInfo['name'], newEdge)
-
-
-
 
 
     def _parseSignalDescription(self, signalDescription: str) -> Dict[str, str] | None:
