@@ -48,7 +48,7 @@ class InputNode(Node):
         self._type = type
         self._name = f"InputNode{InputNode._inputNodeCount}"
         InputNode._inputNodeCount += 1
-        self._outputs = []
+        self._outputs = {}
         self._pyqtElements = []
 
 
@@ -56,8 +56,8 @@ class EntityNode(Node):
     def __init__(self, name: str, type: str = None):
         self._name = name
         self._type = type
-        self._inputs = []
-        self._outputs = []
+        self._inputs = {}
+        self._outputs = {}
         self._ports = []
         self._pyqtElements = []
 
@@ -120,6 +120,9 @@ class Graph:
     def _getDgData(self) -> None:
         # Gettings every entity:
         entitiesNames = self._dgCommunication.getAllEntitiesNames()
+        if entitiesNames is None:
+            return
+
         for name in entitiesNames:
             type = self._dgCommunication.getEntityType(name)
             newNode = EntityNode(name, type)
@@ -165,7 +168,7 @@ class Graph:
             newNode.addOutput(linkedPlugInfo['name'], newEdge)
         else:
             # If the signal is not autoplugged, we link it to the parent entity
-            parentEntity = self._getEntityPerName(linkedPlugInfo['name'])
+            parentEntity = self._getEntityPerName(linkedPlugInfo['entityName'])
             parentEntity.addOutput(linkedPlugInfo['name'], newEdge)
 
 
