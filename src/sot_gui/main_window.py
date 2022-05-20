@@ -1,3 +1,4 @@
+from tokenize import Double
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene,
     QGraphicsView, QToolBar, QDockWidget, QWidget, QAction, QGraphicsRectItem,
     QGraphicsPolygonItem, QGraphicsEllipseItem, QGraphicsSimpleTextItem, 
@@ -6,6 +7,9 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QGraphicsScene,
 from PyQt5.QtGui import QPainter, QPen, QPolygonF, QPainterPath
 
 from PyQt5.QtCore import Qt, QRectF, QPointF
+
+from sot_gui.utils import dotCoordsToQtCoords
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -64,7 +68,9 @@ class SOTGraphView(QGraphicsView):
         # pointsStraightLine = [[54.080,72.000],[65.840,72.000],[80.030,72.000],[93.700,72.000]]
         # coordsQt = []
         # for list in pointsCurve:
-        #     coordsQt.append(self.dotCoordsToQtCoords((list[0], list[1])))
+        #   sceneRect = self.scene.itemsBoundingRect()
+        #   sceneHeight = sceneRect.height()
+        #     coordsQt.append(dotCoordsToQtCoords((list[0], list[1]), sceneHeight))
         # path = QPainterPath()
         # path.moveTo(coordsQt[0][0], coordsQt[0][1])
         # path.cubicTo(coordsQt[1][0], coordsQt[1][1], coordsQt[2][0], coordsQt[2][1],
@@ -72,107 +78,7 @@ class SOTGraphView(QGraphicsView):
         # curve = QGraphicsPathItem(path)
         # self.scene.addItem(curve)
 
-        self.show()
+        #self.show()
 
-
-    def dotCoordsToQtCoords(self, coords):
-        (xCoord, yCoord) = coords
-        sceneRect = self.scene.itemsBoundingRect()
-        sceneHeight = sceneRect.height()
-        return xCoord, sceneHeight - yCoord
-
-
-class DotDataGenerator:
-    def __init__(self) -> None:
-        self._graphContentStr = ""
-
-
-    def getDotString(self) -> None:
-        finalStr = "digraph newGraph {\n"
-        finalStr += self._graphContentStr
-        finalStr += "}\n"
-        return finalStr
-
-
-    def getEncodedDotString(self) -> None:
-        return self.getDotString().encode()
 
     
-    def addNode(self, name: str, attributes: dict = None) -> None:
-        # The name cannot contain a colon, as this character is used to work with ports 
-        if ':' in name:
-            raise ValueError("Node name cannot contain a colon ':'")
-
-        nodeStr = f"\t{name}"
-        if attributes is not None:
-            nodeStr += ' '
-            nodeStr += self._getDotListOfAttributes(attributes)
-        nodeStr += "\n"
-
-        self._graphContentStr += nodeStr
-
-    
-    def addEdge(self, start: str, end: str, attributes: dict = None) -> None:
-        edgeStr = f"\t{start} -> {end}"
-        if attributes is not None:
-            edgeStr += ' '
-            edgeStr += self._getDotListOfAttributes(attributes)
-        edgeStr += '\n'
-
-        self._graphContentStr += edgeStr
-
-
-    def setGraphAttributes(self, attributes: dict) -> None:
-        attributesStr = ""
-        if attributes is not None:
-            for (key, value) in attributes.items():
-                attributesStr += f"\t{key}={str(value)}\n"
-        self._graphContentStr += attributesStr
-
-
-    def setNodeAttributes(self, attributes: dict) -> None:
-        if len(attributes) == 0:
-            return
-        nodeAttrStr = '\tnode '
-        nodeAttrStr += self._getDotListOfAttributes(attributes)
-        nodeAttrStr += '\n'
-        self._graphContentStr += nodeAttrStr
-
-
-    def setEdgeAttributes(self, attributes: dict) -> None:
-        if len(attributes) == 0:
-            return
-        edgeAttrStr = '\tedge '
-        edgeAttrStr += self._getDotListOfAttributes(attributes)
-        edgeAttrStr += '\n'
-        self._graphContentStr += edgeAttrStr
-
-
-    def _getDotListOfAttributes(self, attributes: dict) -> str:
-        if len(attributes) > 0:
-            string = "["
-            for i, (key, value) in enumerate(attributes.items()):
-                string += f"{key}={str(value)}"
-                if i < len(attributes) - 1:
-                    string += ", "
-            string += "]"
-        return string
-
-
-# app = QApplication([])
-
-# window = MainWindow()
-# window.show()
-
-# app.exec()
-
-dotData = DotDataGenerator()
-dotData.setGraphAttributes({'rankdir':'LR'})
-dotData.addNode("add1")
-dotData.setNodeAttributes({'label':'"aaah"', 'color':'red'})
-dotData.setEdgeAttributes({'label':'"aaah"', 'color':'red'})
-dotData.addNode("add2", {'label':'"aaah"', 'color':'red'})
-dotData.addEdge("add1", "add2", {'label':'"aaah"', 'color':'red'})
-
-print(dotData.getDotString())
-
