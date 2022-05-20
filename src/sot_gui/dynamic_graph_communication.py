@@ -14,7 +14,7 @@ class DynamicGraphCommunication():
       DynamicGraphCommunication._isLocal = True
 
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._client = SOTClient()
         self._localVars  = {}
         self._globalVars = {}
@@ -30,7 +30,7 @@ class DynamicGraphCommunication():
           return self.runRemoteCode(code, retValue)
 
 
-    def runLocalCode(self, code: str, retValue: bool) -> Any | None:
+    def runLocalCode(self, code: str, retValue: bool) -> Any:
         """ Runs code locally, and returns a value if needed. """
         localVars = None
         globalVars = self._globalVars
@@ -41,7 +41,7 @@ class DynamicGraphCommunication():
           exec(code, globalVars, localVars)
 
 
-    def runRemoteCode(self, code: str, retValue: bool) -> Any | None:
+    def runRemoteCode(self, code: str, retValue: bool) -> Any:
         """ Runs code on the remote server, and returns a value if needed. """
         try:
             # TODO: reconnect if the server was restarted
@@ -99,7 +99,7 @@ class DynamicGraphCommunication():
             ['{entityName}'].signal('{signalName}').isPlugged()")
 
 
-    def getLinkedPlugName(self, entityName: str, plugName: str) -> str:
+    def getLinkedPlug(self, entityName: str, plugName: str) -> str:
         """ Returns the name of the plug linked to an entity's given plug. """
         return self.run(f"dg.entity.Entity.entities\
             ['{entityName}'].signal('{plugName}').getPlugged().name")

@@ -1,7 +1,10 @@
+from typing import Dict, Any
+
+
 class DotDataGenerator:
     """ This class allows to generate dot code through a simple API. """
 
-    def __init__(self, graphName: str = "G") -> None:
+    def __init__(self, graphName: str = "G"):
         self._graphName = graphName
         self._graphContentStr = ""
 
@@ -19,7 +22,7 @@ class DotDataGenerator:
         return self.getDotString().encode()
 
     
-    def addNode(self, name: str, attributes: dict = None) -> None:
+    def addNode(self, name: str, attributes: Dict[str, Any] = None) -> None:
         """ Adds a node to the graph, with optional attributes. """
 
         # The name cannot contain a colon, as this character is used to work
@@ -36,7 +39,7 @@ class DotDataGenerator:
         self._graphContentStr += newLine
 
     
-    def addEdge(self, tail: str, head: str, attributes: dict = None) -> None:
+    def addEdge(self, tail: str, head: str, attributes: Dict[str, Any] = None) -> None:
         """ Adds an edge to the graph, with optional attributes. Its tail and
             head can be nodes, or nodes' ports.
         """
@@ -49,7 +52,7 @@ class DotDataGenerator:
         self._graphContentStr += newLine
 
 
-    def setGraphAttributes(self, attributes: dict) -> None:
+    def setGraphAttributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets graph attributes. This method can be called anytime during the
             graph creation.
         """
@@ -60,7 +63,7 @@ class DotDataGenerator:
         self._graphContentStr += newLines
 
 
-    def setNodeAttributes(self, attributes: dict) -> None:
+    def setNodeAttributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets nodes attributes. These attributes will only be applied to
             nodes created after calling this method.
         """
@@ -72,7 +75,7 @@ class DotDataGenerator:
         self._graphContentStr += newLine
 
 
-    def setEdgeAttributes(self, attributes: dict) -> None:
+    def setEdgeAttributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets edges attributes. These attributes will only be applied to
             edges created after calling this method.
         """
@@ -84,7 +87,7 @@ class DotDataGenerator:
         self._graphContentStr += newLine
 
 
-    def _generateListOfAttributes(self, attributes: dict) -> str:
+    def _generateListOfAttributes(self, attributes: Dict[str, Any]) -> str:
         """ Returns a string containing a dot-formatted list of node or edge
             attributes.    
         """
