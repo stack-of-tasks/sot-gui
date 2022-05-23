@@ -7,3 +7,8 @@ def dotCoordsToQtCoords(coords: Tuple[float, float], areaHeight: float):
     """
     (xCoord, yCoord) = coords
     return (xCoord, areaHeight - yCoord)
+
+
+def quoted(string: str) -> str:
+    """ Returns the given string wrapped in escaped double quotes. """
+    return f"\"{string}\""

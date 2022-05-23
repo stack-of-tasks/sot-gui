@@ -1,9 +1,11 @@
 from __future__ import annotations # To prevent circular dependencies of annotations
 from typing import Union, List, Any, Dict
 
-from PyQt5.QtWidgets import QGraphicsItem
+from PyQt5.QtWidgets import QGraphicsItem # TODO: replace with pyside
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
+from sot_gui.dot_data_generator import DotDataGenerator
+from sot_gui.utils import quoted
 
 
 class Node:
@@ -14,7 +16,7 @@ class Node:
         self._inputs: Dict[str, Edge] = None
         self._outputs: Dict[str, Edge] = None
         self._ports: List[Port] = None
-        self._pyqtElements: List[QGraphicsItem] = None
+        self._qtElements: List[QGraphicsItem] = None
 
 
     def name(self) -> str:
@@ -45,11 +47,12 @@ class InputNode(Node):
     _inputNodeCount = 0
 
     def __init__(self, type: str = None):
+        # TODO: generate name with name of child node + corresponding plug?
         self._type = type
         self._name = f"InputNode{InputNode._inputNodeCount}"
         InputNode._inputNodeCount += 1
         self._outputs = {}
-        self._pyqtElements = []
+        self._qtElements = []
 
 
 class EntityNode(Node):
@@ -59,7 +62,7 @@ class EntityNode(Node):
         self._inputs = {}
         self._outputs = {}
         self._ports = []
-        self._pyqtElements = []
+        self._qtElements = []
 
 
 class Port:
@@ -100,12 +103,12 @@ class Edge:
 
 class Graph:
     """ This class holds the graph's information: it gets the dynamic graph's
-        entities and signals, and generates their corresponding PyQt elements.
+        entities and signals, and generates their corresponding PySide elements.
     """
 
     def __init__(self):
         self._dgEntities: List[self.Entity] = []
-        self._pyqtEntities: List[QGraphicsItem] = []
+        self._qtEntities: List[QGraphicsItem] = []
 
         self._dgCommunication = DynamicGraphCommunication()
 
@@ -197,9 +200,18 @@ class Graph:
             return None
 
 
-    def _generatePyQtElements(self) -> None:
-        ...
+    def _generateQtElements(self) -> None:
+        dotGenerator = DotDataGenerator()
+        dotGenerator.setGraphAttributes({'rankdir': quoted('LR')})
+        for entity in self._dgEntities:
+            dotGenerator.addNode(entity.name(), {'label': quoted(entity.name())})
+            for (name, edge) in entity.inputs().items():
+                name = edge.tail().name()
+                dotGenerator.addEdge(name, entity.name(), {'label': quoted(name)})
+        print(dotGenerator.getDotString())
 
 
-    def getPyQtElements(self) -> List[QGraphicsItem]:
+    def getQtElements(self) -> List[QGraphicsItem]:
+        qtElements = []
+        # For every node, add its qtElems and its input nodes' qtElems to the list. 
         ...
