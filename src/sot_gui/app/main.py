@@ -19,7 +19,7 @@ def main():
     
     graph = Graph()
     graph._getDgData()
-    graph._generateQtElements()
+    graph._generateQtItems()
 
 
 if __name__ == "__main__" :
