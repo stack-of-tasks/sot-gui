@@ -1,5 +1,6 @@
 from __future__ import annotations # To prevent circular dependencies of annotations
 from typing import List, Any, Dict
+import subprocess
 
 from PyQt5.QtWidgets import QGraphicsItem # TODO: replace by pyside
 
@@ -266,7 +267,7 @@ class Graph:
             return None
 
 
-    def _getDotCode(self) -> str:
+    def _getEncodedDotCode(self) -> bytes:
         dotGenerator = DotDataGenerator()
         dotGenerator.setGraphAttributes({'rankdir': quoted('LR')})
 
@@ -293,13 +294,15 @@ class Graph:
                     attributes = {'label': edge.value()}
                 dotGenerator.addEdge(parentNodeName, entity.name(), attributes)
 
-        return dotGenerator.getDotString()
+        return dotGenerator.getEncodedDotString()
 
 
     def _generateQtItems(self) -> None:
-        dotCode = self._getDotCode()
-        print(dotCode)
-        
+        encodedDotCode = self._getEncodedDotCode()
+        (out, _) = subprocess.Popen(['dot', '-Tjson'], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate(encodedDotCode)
+        print(out.decode('utf-8'))
+
 
     def getQtItems(self) -> List[QGraphicsItem]:
         ...
