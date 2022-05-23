@@ -288,14 +288,9 @@ class Graph:
             for edge in inputEdges:
                 parentNodeName = edge.tail().node().name()
                 # The value is displayed only if the parent node isn't an InputNode:
-                # attributes = None
-                # if isinstance(self._getNodePerName(parentNodeName), EntityNode):
-                #     attributes = {'label': edge.value()}
-                attributes = {
-                    'label': edge.value(),
-                    'taillabel': edge.tail().name(),
-                    'headlabel': edge.head().name()
-                }
+                attributes = None
+                if isinstance(self._getNodePerName(parentNodeName), EntityNode):
+                    attributes = {'label': edge.value()}
                 dotGenerator.addEdge(parentNodeName, entity.name(), attributes)
 
         return dotGenerator.getDotString()
