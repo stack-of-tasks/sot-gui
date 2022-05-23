@@ -1,4 +1,5 @@
-from __future__ import annotations # To prevent circular dependencies of annotations
+from __future__ import annotations
+from cProfile import label # To prevent circular dependencies of annotations
 from typing import Union, List, Any, Dict
 
 from PyQt5.QtWidgets import QGraphicsItem # TODO: replace with pyside
@@ -82,6 +83,9 @@ class Edge:
     def name(self) -> str:
         return self._name
 
+    def value(self) -> Any:
+        return self._value
+
 
     def valueType(self) -> str:
         return self._valueType
@@ -107,16 +111,21 @@ class Graph:
     """
 
     def __init__(self):
-        self._dgEntities: List[self.Entity] = []
-        self._qtEntities: List[QGraphicsItem] = []
+        # Entities that exist in the dynamic graph:
+        self._dgEntities: List[EntityNode] = []
+        # Input nodes that don't exist in the dynamic graph:
+        self._inputNodes: List[InputNode] = []
 
         self._dgCommunication = DynamicGraphCommunication()
 
 
-    def _getEntityPerName(self, name:str) -> Node | None:
+    def _getNodePerName(self, name:str) -> Node | None:
         for entity in self._dgEntities:
             if entity.name() == name:
                 return entity
+        for node in self._inputNodes:
+            if node.name() == name:
+                return node
         return None
 
 
@@ -146,7 +155,7 @@ class Graph:
                     self._addSignalToDgData(plugInfo, entity)
 
 
-    def _addSignalToDgData(self, plugInfo: Dict[str, str], childEntity: Node) -> None:
+    def _addSignalToDgData(self, plugInfo: Dict[str, str], childEntity: EntityNode) -> None:
         sigName = plugInfo['name']
         childEntityName = childEntity.name()
 
@@ -169,9 +178,10 @@ class Graph:
             # to represent the input value
             newNode = InputNode(newEdge.valueType())
             newNode.addOutput(linkedPlugInfo['name'], newEdge)
+            self._inputNodes.append(newNode)
         else:
             # If the signal is not autoplugged, we link it to the parent entity
-            parentEntity = self._getEntityPerName(linkedPlugInfo['entityName'])
+            parentEntity = self._getNodePerName(linkedPlugInfo['entityName'])
             parentEntity.addOutput(linkedPlugInfo['name'], newEdge)
 
 
@@ -200,16 +210,38 @@ class Graph:
             return None
 
 
-    def _generateQtElements(self) -> None:
+    def _getDotCode(self) -> str:
         dotGenerator = DotDataGenerator()
         dotGenerator.setGraphAttributes({'rankdir': quoted('LR')})
+
+        # Adding the input nodes:
+        dotGenerator.setNodeAttributes({'shape': 'circle'})
+        for node in self._inputNodes:
+            outputEdges = list(node.outputs().values())
+            if len(outputEdges) != 1:
+                raise ValueError("InputNode should have exactly one output.")
+            dotGenerator.addNode(node.name(), {'label': outputEdges[0].value()})
+
+        # Adding the dynamic graph entities' nodes and their input edges:
+        dotGenerator.setNodeAttributes({'shape': 'box'})
         for entity in self._dgEntities:
             dotGenerator.addNode(entity.name(), {'label': quoted(entity.name())})
-            for (name, edge) in entity.inputs().items():
-                name = edge.tail().name()
-                dotGenerator.addEdge(name, entity.name(), {'label': quoted(name)})
-        print(dotGenerator.getDotString())
 
+            for edge in entity.inputs().values():
+                parentName = edge.tail().name()
+                # The value is displayed only if the parent node isn't an InputNode:
+                attributes = None
+                if isinstance(self._getNodePerName(parentName), EntityNode):
+                    attributes = {'label': edge.value()}
+                dotGenerator.addEdge(parentName, entity.name(), attributes)
+
+        return dotGenerator.getDotString()
+
+
+    def _generateQtElements(self) -> None:
+        dotCode = self._getDotCode()
+        print(dotCode)
+        
 
     def getQtElements(self) -> List[QGraphicsItem]:
         qtElements = []
