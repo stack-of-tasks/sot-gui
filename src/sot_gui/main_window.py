@@ -9,6 +9,7 @@ from PyQt5.QtGui import QPainter, QPen, QPolygonF, QPainterPath
 from PyQt5.QtCore import Qt, QRectF, QPointF
 
 from sot_gui.utils import dotCoordsToQtCoords
+from sot_gui.graph import Graph
 
 
 class MainWindow(QMainWindow):
@@ -25,7 +26,7 @@ class MainWindow(QMainWindow):
 
         sotGraphView = SOTGraphView(self)
         self.setCentralWidget(sotGraphView)
-        #self.addDockWidget(Qt.BottomDockWidgetArea, QDockWidget(sotGraphView))
+
 
     def onMyToolBarButtonClick(self):
         print("hdfgjqy")
@@ -35,8 +36,13 @@ class SOTGraphView(QGraphicsView):
 
     def __init__(self, parentWidget):
         super().__init__(parentWidget)
-        self.scene = QGraphicsScene()
-        self.setScene(self.scene)
+        self._scene = QGraphicsScene()
+        self.setScene(self._scene)
+
+        self._graph = Graph()
+        self._items = self._graph.getQtItems()
+        for item in self._items:
+            self._scene.addItem(item)
 
         # Rectangles
         # rect = QGraphicsRectItem(0, 0, 60, 160)
