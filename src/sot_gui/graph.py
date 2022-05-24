@@ -2,7 +2,7 @@ from __future__ import annotations # To prevent circular dependencies of annotat
 from typing import List, Any, Dict
 import subprocess
 
-from PySide2.QtWidgets import QGraphicsItem
+from PySide2.QtWidgets import QGraphicsItem, QGraphicsRectItem
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 from sot_gui.dot_data_generator import DotDataGenerator
@@ -27,6 +27,10 @@ class Node:
         return self._type
     def set_type(self, type: str) -> None:
         self._type = type
+
+
+    def qt_items(self) -> List[QGraphicsItem]:
+        return self._qt_items.copy()
 
 
     def inputs(self) -> List[Port]:
@@ -77,6 +81,10 @@ class Node:
 
         def type(self) -> str:
             return self._type
+
+
+        def qt_items(self) -> List[QGraphicsItem]:
+            return self._qt_items.copy()
 
 
         def node(self) -> str:
@@ -142,6 +150,10 @@ class Edge:
         return self._value_type
     def set_value_type(self, value_type: str) -> None:
         self._value_type = value_type
+
+
+    def qt_items(self) -> List[QGraphicsItem]:
+        return self._qt_items.copy()
 
 
     def head(self) -> Node.Port:
@@ -299,8 +311,8 @@ class Graph:
 
 
     def _generate_qt_items(self) -> None:
-        """ For each node, port and edge in self._dg_data, this function generates
-            the corresponding list of qt items and stores it as their `_qt_items` attribute.
+        """ For each Node, Port and Edge, this function generates the corresponding
+            list of qt items and stores it as their `_qt_items` attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
         (out, _) = subprocess.Popen(['dot', '-Tjson'], stdin=subprocess.PIPE,
@@ -309,7 +321,30 @@ class Graph:
 
 
     def get_qt_items(self) -> List[QGraphicsItem]:
+        self._generate_qt_items()
+        qt_items = []
+
+        # For each node, we add the qt items of the node, of its ports, and of the
+        # port's edge if it's an input (so that edges are not handled twice)
+        nodes = self._dg_entities + self._input_nodes
+        for node in nodes:
+            qt_items += node.qt_items()
+
+            ports = node.outputs()
+            if isinstance(node, EntityNode):
+                ports += node.inputs()
+                
+            for port in ports:
+                qt_items += port.qt_items()
+                if port.type() == 'input' and port.edge() is not None:
+                    qt_items += port.edge().qt_items()
+
+        return qt_items
+
+
+    def refresh_graph(self):
+        """ This function updates the graph by fetching the dynamic graph's data,
+            generating a new graph layout with dot and creating the needed qt items.
+        """
         self._get_dg_data()
         self._generate_qt_items()
-
-        return []
