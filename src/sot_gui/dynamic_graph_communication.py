@@ -6,42 +6,42 @@ class DynamicGraphCommunication():
     """ This class allows to communicate with a SoT dynamic graph, which can
         be local or on a remote server.
     """
-    _isLocal = False
+    _is_local = False
 
 
     @staticmethod
-    def dgIsLocal() -> None:
-      DynamicGraphCommunication._isLocal = True
+    def dg_is_local() -> None:
+      DynamicGraphCommunication._is_local = True
 
 
     def __init__(self):
         self._client = SOTClient()
-        self._localVars  = {}
-        self._globalVars = {}
-        self._importDynamicGraph()
+        self._local_vars  = {}
+        self._global_vars = {}
+        self._import_dynamic_graph()
 
 
-    def run(self, code: str, retValue: bool = True) -> Any:
+    def run(self, code: str, ret_value: bool = True) -> Any:
         """ Runs code, either locally or on the remote server. """
         # TODO: should the code be encoded?
-        if DynamicGraphCommunication._isLocal:
-          return self.runLocalCode(code, retValue)
+        if DynamicGraphCommunication._is_local:
+          return self.run_local_code(code, ret_value)
         else:
-          return self.runRemoteCode(code, retValue)
+          return self.run_remote_code(code, ret_value)
 
 
-    def runLocalCode(self, code: str, retValue: bool) -> Any:
+    def run_local_code(self, code: str, ret_value: bool) -> Any:
         """ Runs code locally, and returns a value if needed. """
-        localVars = None
-        globalVars = self._globalVars
-        if retValue:
-          exec(f"_returnValue = {code}", globalVars, localVars)
-          return eval("_returnValue", globalVars, localVars)
+        local_vars = None
+        global_vars = self._global_vars
+        if ret_value:
+          exec(f"_returnValue = {code}", global_vars, local_vars)
+          return eval("_returnValue", global_vars, local_vars)
         else:
-          exec(code, globalVars, localVars)
+          exec(code, global_vars, local_vars)
 
 
-    def runRemoteCode(self, code: str, retValue: bool) -> Any:
+    def run_remote_code(self, code: str, ret_value: bool) -> Any:
         """ Runs code on the remote server, and returns a value if needed. """
         try:
             # TODO: reconnect if the server was restarted
@@ -55,7 +55,7 @@ class DynamicGraphCommunication():
                 print(response.stderr)
             
             if response.result:
-                if not retValue:
+                if not ret_value:
                     return
                 return response.result
 
@@ -63,49 +63,49 @@ class DynamicGraphCommunication():
             ...
 
 
-    def _importDynamicGraph(self) -> None:
+    def _import_dynamic_graph(self) -> None:
         """ Imports the dynamic graph. """
         self.run("import dynamic_graph as dg", False)
 
 
-    def getAllEntitiesNames(self) -> List[str]:
+    def get_all_entities_names(self) -> List[str]:
         """ Returns a list of the names of the dynamic graph's entities. """
         return self.run("dg.entity.Entity.entities.keys()")
 
 
-    def entityExists(self, entityName: str) -> bool:
+    def entity_exists(self, entity_name: str) -> bool:
         """ Returns True if the dynamic graph contains an entity named
-            `entityName`.
+            `entity_name`.
         """
-        return self.run(f"{entityName} + in dg.node.Entity.entities")
+        return self.run(f"{entity_name} + in dg.node.Entity.entities")
 
 
-    def getEntityType(self, entityName: str) -> str:
+    def get_entity_type(self, entity_name: str) -> str:
         """ Returns the type of the entity, as a string. """
-        return self.run(f"dg.entity.Entity.entities['{entityName}'].className")
+        return self.run(f"dg.entity.Entity.entities['{entity_name}'].className")
 
 
-    def getEntitySignals(self, entityName: str) -> List[str]:
+    def get_entity_signals(self, entity_name: str) -> List[str]:
         """ Returns a list of the entity's signals information
             (e.g `'Add_of_double(add1)::input(double)::sin0'`).
         """
         return self.run(f"[ s.name for s in dg.entity.Entity\
-            .entities['{entityName}'].signals() ]")
+            .entities['{entity_name}'].signals() ]")
 
 
-    def isSignalPlugged(self, entityName: str, signalName: str) -> bool:
+    def is_signal_plugged(self, entity_name: str, signal_name: str) -> bool:
         """ Returns True if the signal is plugged to another entity. """
         return self.run(f"dg.entity.Entity.entities\
-            ['{entityName}'].signal('{signalName}').isPlugged()")
+            ['{entity_name}'].signal('{signal_name}').isPlugged()")
 
 
-    def getLinkedPlug(self, entityName: str, plugName: str) -> str:
+    def get_linked_plug(self, entity_name: str, plug_name: str) -> str:
         """ Returns the name of the plug linked to an entity's given plug. """
         return self.run(f"dg.entity.Entity.entities\
-            ['{entityName}'].signal('{plugName}').getPlugged().name")
+            ['{entity_name}'].signal('{plug_name}').getPlugged().name")
 
 
-    def getSignalValue(self, entityName: str, plugName: str) -> Any:
+    def get_signal_value(self, entity_name: str, plug_name: str) -> Any:
         """ Returns the value of an entity's given plug. """
         return self.run(f"dg.entity.Entity.entities\
-            ['{entityName}'].signal('{plugName}').value")
+            ['{entity_name}'].signal('{plug_name}').value")

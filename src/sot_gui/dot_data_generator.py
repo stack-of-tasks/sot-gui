@@ -4,25 +4,25 @@ from typing import Dict, Any
 class DotDataGenerator:
     """ This class allows to generate dot code through a simple API. """
 
-    def __init__(self, graphName: str = "G"):
-        self._graphName = graphName
-        self._graphContentStr = ""
+    def __init__(self, graph_name: str = "G"):
+        self._graph_name = graph_name
+        self._graph_content_str = ""
 
 
-    def getDotString(self) -> str:
+    def get_dot_string(self) -> str:
         """ Returns the generated dot code as a string. """
-        finalString = "digraph " + self._graphName + " {\n"
-        finalString += self._graphContentStr
-        finalString += "}\n"
-        return finalString
+        final_string = "digraph " + self._graph_name + " {\n"
+        final_string += self._graph_content_str
+        final_string += "}\n"
+        return final_string
 
 
-    def getEncodedDotString(self) -> bytes:
+    def get_encoded_dot_string(self) -> bytes:
         """ Returns the generated dot code as a utf-8 encoded string. """
-        return self.getDotString().encode()
+        return self.get_dot_string().encode()
 
     
-    def addNode(self, name: str, attributes: Dict[str, Any] = None) -> None:
+    def add_node(self, name: str, attributes: Dict[str, Any] = None) -> None:
         """ Adds a node to the graph, with optional attributes. """
 
         # The name cannot contain a colon, as this character is used to work
@@ -30,64 +30,64 @@ class DotDataGenerator:
         if ':' in name:
             raise ValueError("Node name cannot contain a colon ':'")
 
-        newLine = f"\t{name}"
+        new_line = f"\t{name}"
         if attributes is not None:
-            newLine += ' '
-            newLine += self._generateListOfAttributes(attributes)
-        newLine += "\n"
+            new_line += ' '
+            new_line += self._generate_list_of_attributes(attributes)
+        new_line += "\n"
 
-        self._graphContentStr += newLine
+        self._graph_content_str += new_line
 
     
-    def addEdge(self, tail: str, head: str, attributes: Dict[str, Any] = None) -> None:
+    def add_edge(self, tail: str, head: str, attributes: Dict[str, Any] = None) -> None:
         """ Adds an edge to the graph, with optional attributes. Its tail and
             head can be nodes, or nodes' ports.
         """
-        newLine = f"\t{tail} -> {head}"
+        new_line = f"\t{tail} -> {head}"
         if attributes is not None:
-            newLine += ' '
-            newLine += self._generateListOfAttributes(attributes)
-        newLine += '\n'
+            new_line += ' '
+            new_line += self._generate_list_of_attributes(attributes)
+        new_line += '\n'
 
-        self._graphContentStr += newLine
+        self._graph_content_str += new_line
 
 
-    def setGraphAttributes(self, attributes: Dict[str, Any]) -> None:
+    def set_graph_attributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets graph attributes. This method can be called anytime during the
             graph creation.
         """
-        newLines = ""
+        new_lines = ""
         if attributes is not None:
             for (key, value) in attributes.items():
-                newLines += f"\t{key}={str(value)}\n"
-        self._graphContentStr += newLines
+                new_lines += f"\t{key}={str(value)}\n"
+        self._graph_content_str += new_lines
 
 
-    def setNodeAttributes(self, attributes: Dict[str, Any]) -> None:
+    def set_node_attributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets nodes attributes. These attributes will only be applied to
             nodes created after calling this method.
         """
         if len(attributes) == 0:
             return
-        newLine = '\tnode '
-        newLine += self._generateListOfAttributes(attributes)
-        newLine += '\n'
-        self._graphContentStr += newLine
+        new_line = '\tnode '
+        new_line += self._generate_list_of_attributes(attributes)
+        new_line += '\n'
+        self._graph_content_str += new_line
 
 
-    def setEdgeAttributes(self, attributes: Dict[str, Any]) -> None:
+    def set_edge_attributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets edges attributes. These attributes will only be applied to
             edges created after calling this method.
         """
         if len(attributes) == 0:
             return
-        newLine = '\tedge '
-        newLine += self._generateListOfAttributes(attributes)
-        newLine += '\n'
-        self._graphContentStr += newLine
+        new_line = '\tedge '
+        new_line += self._generate_list_of_attributes(attributes)
+        new_line += '\n'
+        self._graph_content_str += new_line
 
 
-    def _generateListOfAttributes(self, attributes: Dict[str, Any]) -> str:
+    def _generate_list_of_attributes(self, attributes: Dict[str, Any]) -> str:
         """ Returns a string containing a dot-formatted list of node or edge
             attributes.    
         """

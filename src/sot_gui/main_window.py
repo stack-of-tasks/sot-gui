@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPainter, QPen, QPolygonF, QPainterPath
 
 from PyQt5.QtCore import Qt, QRectF, QPointF
 
-from sot_gui.utils import dotCoordsToQtCoords
+from sot_gui.utils import dot_coords_to_qt_coords
 from sot_gui.graph import Graph
 
 
@@ -21,26 +21,26 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
         button_action = QAction("Your button", self)
         button_action.setStatusTip("This is your button")
-        button_action.triggered.connect(self.onMyToolBarButtonClick)
+        button_action.triggered.connect(self.button_callback)
         toolbar.addAction(button_action)
 
-        sotGraphView = SOTGraphView(self)
-        self.setCentralWidget(sotGraphView)
+        sot_graph_view = SOTGraphView(self)
+        self.setCentralWidget(sot_graph_view)
 
 
-    def onMyToolBarButtonClick(self):
+    def button_callback(self):
         print("hdfgjqy")
 
 
 class SOTGraphView(QGraphicsView):
 
-    def __init__(self, parentWidget):
-        super().__init__(parentWidget)
+    def __init__(self, parent_widget):
+        super().__init__(parent_widget)
         self._scene = QGraphicsScene()
         self.setScene(self._scene)
 
         self._graph = Graph()
-        self._items = self._graph.getQtItems()
+        self._items = self._graph.get_qt_items()
         for item in self._items:
             self._scene.addItem(item)
 

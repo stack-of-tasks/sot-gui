@@ -10,8 +10,8 @@ from PyQt5.QtCore import QRectF, QPointF
 class JsonToQtGenerator:
     """ """
 
-    def __init__(self, jsonString: str):
-        self._graph_data: Dict[str, Any] = loads(jsonString)
+    def __init__(self, json_string: str):
+        self._graph_data: Dict[str, Any] = loads(json_string)
 
 
 
