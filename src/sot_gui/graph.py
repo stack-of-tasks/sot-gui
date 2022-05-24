@@ -1,6 +1,7 @@
 from __future__ import annotations # To prevent circular dependencies of annotations
 from typing import List, Any, Dict
-import subprocess
+from subprocess import Popen, PIPE
+from copy import deepcopy
 
 from PySide2.QtWidgets import QGraphicsItem, QGraphicsRectItem
 
@@ -180,6 +181,12 @@ class Graph:
         self._dg_entities: List[EntityNode] = []
         # Input nodes that don't exist in the dynamic graph:
         self._input_nodes: List[InputNode] = []
+        # Information about the graph as a whole (name, dimensions, background color...):
+        self._graph_info: Dict[str, Any] = {}
+
+
+    def graph_info(self) -> Dict[str, Any]:
+        return deepcopy(self._graph_info)
 
 
     def _get_node_per_name(self, name: str) -> Node | None:
@@ -315,8 +322,8 @@ class Graph:
             list of qt items and stores it as their `_qt_items` attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
-        (out, _) = subprocess.Popen(['dot', '-Tjson'], stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate(encoded_dot_code)
+        (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE, stderr=PIPE)\
+            .communicate(encoded_dot_code)
         print(out.decode('utf-8'))
 
 
@@ -333,7 +340,7 @@ class Graph:
             ports = node.outputs()
             if isinstance(node, EntityNode):
                 ports += node.inputs()
-                
+
             for port in ports:
                 qt_items += port.qt_items()
                 if port.type() == 'input' and port.edge() is not None:

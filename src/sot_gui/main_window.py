@@ -26,13 +26,15 @@ class GraphScene(QGraphicsScene):
 
     def __init__(self, parent):
         super().__init__(parent)
-
         self._graph = Graph()
+        self.refresh_graph()
+
+
+    def refresh_graph(self):
         self._graph.refresh_graph()
         self._items = self._graph.get_qt_items()
         for item in self._items:
             self.addItem(item)
 
-
-    def refresh_graph(self):
-        self._graph.refresh_graph()
+        self.setSceneRect(0, 0, 1000, 750)
+        # TODO: update scene's background color, etc
