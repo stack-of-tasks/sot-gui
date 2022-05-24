@@ -2,7 +2,7 @@ from __future__ import annotations # To prevent circular dependencies of annotat
 from typing import List, Any, Dict
 import subprocess
 
-from PyQt5.QtWidgets import QGraphicsItem # TODO: replace by pyside
+from PySide2.QtWidgets import QGraphicsItem
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 from sot_gui.dot_data_generator import DotDataGenerator
@@ -64,7 +64,7 @@ class Node:
     
     class Port:
         def __init__(self, name: str, type: str, node: Node):
-            self.qt_items: List[QGraphicsItem] = None
+            self._qt_items: List[QGraphicsItem] = []
             self._edge = None
             self._name = name
             self._type = type # 'input' or 'output'
@@ -123,6 +123,7 @@ class EntityNode(Node):
 class Edge:
     def __init__(self, value: Any = None, value_type: str = None,
                 head: Node.Port = None, tail: Node.Port = None):
+        self._qt_items: List[QGraphicsItem] = []
         self._value = value
         self._value_type = value_type
         self._head = head
@@ -298,8 +299,10 @@ class Graph:
 
 
     def _generate_qt_items(self) -> None:
+        """ For each node, port and edge in self._dg_data, this function generates
+            the corresponding list of qt items and stores it as their `_qt_items` attribute.
+        """
         encoded_dot_code = self._get_encoded_dot_code()
-        print(encoded_dot_code.decode('utf-8'))
         (out, _) = subprocess.Popen(['dot', '-Tjson'], stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate(encoded_dot_code)
         print(out.decode('utf-8'))
