@@ -7,6 +7,7 @@ from PySide2.QtWidgets import QGraphicsItem, QGraphicsRectItem
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 from sot_gui.dot_data_generator import DotDataGenerator
+from sot_gui.json_to_qt_generator import JsonToQtGenerator
 from sot_gui.utils import quoted
 
 
@@ -31,15 +32,23 @@ class Node:
 
 
     def qt_items(self) -> List[QGraphicsItem]:
-        return self._qt_items.copy()
+        if self._qt_items is not None:
+            return self._qt_items.copy()
+        return []
+    def set_qt_items(self, qt_items: List[QGraphicsItem]) -> None:
+        self._qt_items = qt_items
 
 
     def inputs(self) -> List[Port]:
-        return self._inputs.copy()
+        if self._inputs is not None:
+            return self._inputs.copy()
+        return []
 
 
     def outputs(self) -> List[Port]:
-        return self._outputs.copy()
+        if self._outputs is not None:
+            return self._outputs.copy()
+        return []
 
 
     def add_port(self, name: str, type: str) -> Port:
@@ -85,7 +94,11 @@ class Node:
 
 
         def qt_items(self) -> List[QGraphicsItem]:
-            return self._qt_items.copy()
+            if self._qt_items is not None:
+                return self._qt_items.copy()
+            return []
+        def set_qt_items(self, qt_items: List[QGraphicsItem]) -> None:
+            self._qt_items = qt_items
 
 
         def node(self) -> str:
@@ -154,7 +167,11 @@ class Edge:
 
 
     def qt_items(self) -> List[QGraphicsItem]:
-        return self._qt_items.copy()
+        if self._qt_items is not None:
+            return self._qt_items.copy()
+        return []
+    def set_qt_items(self, qt_items: List[QGraphicsItem]) -> None:
+        self._qt_items = qt_items
 
 
     def head(self) -> Node.Port:
@@ -324,7 +341,12 @@ class Graph:
         encoded_dot_code = self._get_encoded_dot_code()
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE, stderr=PIPE)\
             .communicate(encoded_dot_code)
-        print(out.decode('utf-8'))
+
+        qt_generator = JsonToQtGenerator(out.decode('utf-8'))
+        # For every node, we get its qt items:
+        for node in self._input_nodes + self._dg_entities:
+            qt_items = qt_generator.get_qt_items_for_node(node.name())
+            node.set_qt_items(qt_items)
 
 
     def get_qt_items(self) -> List[QGraphicsItem]:
