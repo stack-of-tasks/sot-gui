@@ -339,14 +339,16 @@ class Graph:
             list of qt items and stores it as their `_qt_items` attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
+        print(encoded_dot_code.decode('utf-8'))
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE, stderr=PIPE)\
             .communicate(encoded_dot_code)
+        print(out.decode('utf-8'))
 
         qt_generator = JsonToQtGenerator(out.decode('utf-8'))
         # For every node, we get its qt items:
         for node in self._input_nodes + self._dg_entities:
-            qt_items = qt_generator.get_qt_items_for_node(node.name())
-            node.set_qt_items(qt_items)
+            qt_item = qt_generator.get_qt_item_for_node(node.name())
+            node.set_qt_items([qt_item]) # TODO: make it a single item?
 
 
     def get_qt_items(self) -> List[QGraphicsItem]:

@@ -1,13 +1,13 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 from json import loads
 
 from PySide2.QtWidgets import (QGraphicsPolygonItem, QGraphicsEllipseItem, QGraphicsItem,
-    QGraphicsRectItem, QGraphicsSimpleTextItem)
-from PySide2.QtGui import QPolygonF
+    QGraphicsRectItem, QGraphicsTextItem)
+from PySide2.QtGui import QPolygonF, QFont
 from PySide2.QtCore import QRectF, QPointF
 
-from sot_gui.utils import filter_dicts_per_attribute
+from sot_gui.utils import get_dict_with_element, get_dict_with_element_in_list
 
 
 class JsonToQtGenerator:
@@ -23,8 +23,8 @@ class JsonToQtGenerator:
             'T': self._generate_text, # Text
             'p': self._generate_polygon,
             'P': self._generate_polygon,
-            'e': self._temporary_placeholder_function, # Ellipse
-            'E': self._temporary_placeholder_function, # Ellipse
+            'e': self._generate_ellipse, # Ellipse
+            'E': self._generate_ellipse, # Ellipse
             'b': self._temporary_placeholder_function, # Bezier spline
             'B': self._temporary_placeholder_function, # Bezier spline
             'L': self._temporary_placeholder_function, # Polyline
@@ -43,39 +43,52 @@ class JsonToQtGenerator:
         }
 
 
-    def get_qt_items_for_node(self, node_name: str) -> List[QGraphicsItem]:
+    def get_qt_item_for_node(self, node_name: str) -> QGraphicsItem:
         # Getting the node whose name is `node_name`:
-        nodes = filter_dicts_per_attribute(self._graph_data['objects'], 'name', node_name)
-        if len(nodes) == 0:
+        node = get_dict_with_element(self._graph_data['objects'], 'name', node_name)
+        if node is None:
             raise ValueError(f"Node {node_name} could not be found in dot's json output.")
-        node = nodes[0]
+        if node.get('style') == 'invis': # If the node is invisible
+            return []
 
-        qt_items = []
-        # Creating the node's shape:
-        for object in node['_draw_']:
-            object_type = object['op']
-            qt_item = self._qt_generator_for_type[object_type](object)
-            qt_items.append(qt_item)
+        # Creating the node's body (node = body + label):
+        qt_item_body = self._get_node_body(node['_draw_'])
 
-        # Creating the node's label:
-        for object in node['_ldraw_']:
-            object_type = object['op']
-            qt_item = self._qt_generator_for_type[object_type](object)
-            qt_items.append(qt_item)
+        # Creating the node's label, with the node's shape as parent:
+        label = self._get_label(node['_ldraw_'])
+        label.setParentItem(qt_item_body)
 
-        return qt_items
+        return qt_item_body
 
 
-    def _dot_coords_to_qt_coords(self, coords: Tuple[float, float]):
-        """ Converts dot coordinates (origin on the bottom-left corner) to Qt
-            coordinates (origin on the top-left corner).
-        """
-        (x_coord, y_coord) = coords
-        return (x_coord, self._graph_bounding_box['height'] - y_coord)
+    def _get_node_body(self, body_data: List[Dict]) -> QGraphicsItem:
+        # Getting the body's shape:
+        shape_data = get_dict_with_element_in_list(body_data, 'op',
+                ['p', 'P', 'e', 'E'])
+        shape_type = shape_data['op']
+        qt_item_body = self._qt_generator_for_type[shape_type](shape_data)
+        return qt_item_body
+
+
+    def _get_label(self, label_data: List[Dict]) -> QGraphicsItem:
+        # Getting the text:
+        text_data = get_dict_with_element(label_data, 'op', 'T')
+        qt_item_label = self._generate_text(text_data)
+
+        # Getting the font info:
+        font_data = get_dict_with_element(label_data, 'op', 'F')
+
+        # Setting its position:
+        position = QPointF(
+            text_data['pt'][0] - text_data['width'] / 2,
+            text_data['pt'][1] - font_data['size'] / 2
+        )
+        qt_item_label.setPos(position)
+
+        return qt_item_label
 
 
     def _generate_polygon(self, data: Dict[str, Any]) -> QGraphicsPolygonItem:
-        # TODO: add color
         polygon = QPolygonF()
 
         # Adding each of the polygon's points:
@@ -87,13 +100,38 @@ class JsonToQtGenerator:
         return polygonItem
 
 
-    def _generate_text(self, data: Dict[str, Any]) -> QGraphicsSimpleTextItem:
-        # TOOD: add color, font, etc
-        return QGraphicsSimpleTextItem(data['text'])
+    def _generate_ellipse(self, data: Dict[str, Any]) -> QGraphicsEllipseItem:
+        # Gettings the ellipse's rectangle's dimensions:
+        width = data['rect'][2] * 2
+        height = data['rect'][3] * 2
+
+        # Getting its coords:
+        dot_coords = (data['rect'][0] - width / 2, data['rect'][1] + height / 2)
+        qt_coords = self._dot_coords_to_qt_coords(dot_coords)
+
+        # Creating the ellipse:
+        rect = QRectF(qt_coords[0], qt_coords[1], width, height)
+        ellipse = QGraphicsEllipseItem(rect)
+        return ellipse
+
+
+    def _generate_text(self, data: Dict[str, Any]) -> QGraphicsTextItem:
+        #font = QFont('Times', 14)
+        text = QGraphicsTextItem(data['text'])
+        #text.setFont(font)
+        return text
 
 
     def _temporary_placeholder_function(self, _) -> QGraphicsRectItem:
         return QGraphicsRectItem(0, 0, 10, 10)
+
+
+    def _dot_coords_to_qt_coords(self, coords: Tuple[float, float]) -> Tuple[float, float]:
+        """ Converts dot coordinates (origin on the bottom-left corner) to Qt
+            coordinates (origin on the top-left corner).
+        """
+        (x_coord, y_coord) = coords
+        return (x_coord, self._graph_bounding_box['height'] - y_coord)
 
 
 
@@ -115,7 +153,7 @@ class JsonToQtGenerator:
 # circle = QGraphicsEllipseItem(square)
 
 # Text
-# text = QGraphicsSimpleTextItem("hello world")
+# text = QGraphicsTextItem("hello world")
 
 # Curve / straightline
 # /!\ Add a path to QPainterPath if there are several bezier curves

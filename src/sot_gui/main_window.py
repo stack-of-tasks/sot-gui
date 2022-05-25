@@ -1,3 +1,5 @@
+from PySide2.QtCore import Qt
+
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction)
 
@@ -14,6 +16,10 @@ class MainWindow(QMainWindow):
         self._view.setScene(self._scene)
         self.setCentralWidget(self._view)
 
+        self._view.setFixedSize(1000, 750)
+        self._view.setSceneRect(0, 0, 900, 650)
+        #self._view.fitInView(0, 0, 900, 650, Qt.KeepAspectRatio)
+
         toolbar = QToolBar("Toolbar")
         self.addToolBar(toolbar)
         button_action = QAction("Refresh", self)
@@ -26,15 +32,16 @@ class GraphScene(QGraphicsScene):
 
     def __init__(self, parent):
         super().__init__(parent)
+        #self.setSceneRect(0, 0, 1000, 750)
         self._graph = Graph()
         self.refresh_graph()
 
 
     def refresh_graph(self):
+        self.clear()
         self._graph.refresh_graph()
         self._items = self._graph.get_qt_items()
         for item in self._items:
             self.addItem(item)
 
-        self.setSceneRect(0, 0, 1000, 750)
-        # TODO: update scene's background color, etc
+        # TODO: update scene's background color, size, etc
