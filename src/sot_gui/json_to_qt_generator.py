@@ -7,7 +7,8 @@ from PySide2.QtWidgets import (QGraphicsPolygonItem, QGraphicsEllipseItem, QGrap
 from PySide2.QtGui import QPolygonF, QFont
 from PySide2.QtCore import QRectF, QPointF
 
-from sot_gui.utils import get_dict_with_element, get_dict_with_element_in_list
+from sot_gui.utils import (get_dict_with_element, get_dicts_with_element,
+    get_dict_with_element_in_list)
 
 
 class JsonToQtGenerator:
@@ -59,6 +60,12 @@ class JsonToQtGenerator:
         label.setParentItem(qt_item_body)
 
         return qt_item_body
+
+
+    def get_qt_item_for_edge(self, head_name: str, tail_name: str) -> QGraphicsItem:
+        edge = self._get_edge_per_nodes_names(head_name, tail_name)
+        
+
 
 
     def _get_node_body(self, body_data: List[Dict]) -> QGraphicsItem:
@@ -134,26 +141,33 @@ class JsonToQtGenerator:
         return (x_coord, self._graph_bounding_box['height'] - y_coord)
 
 
+    def _get_node_gvid_per_name(self, name: str) -> int:
+        node = get_dict_with_element(self._graph_data['objects'], 'name', name)
+        return node.get('_gvid')
+
+
+    def _get_edge_per_nodes_names(self, head_name: str, tail_name: str) -> Dict[str, Any]:
+        # Retrieving the nodes' _gvid IDs:
+        head_gvid = self._get_node_gvid_per_name(head_name)
+        tail_gvid = self._get_node_gvid_per_name(tail_name)
+
+        # Getting the edges whose heads are `head_name`:
+        all_edges = self._graph_data['edges']
+        edges_with_correct_head = get_dicts_with_element(all_edges, 'head', head_gvid)
+
+        # Among these edges, finding the one whose tail is `tail_name`:
+        correct_edges = get_dicts_with_element(edges_with_correct_head, 'tail', tail_gvid)
+        if correct_edges == []:
+            raise ValueError(f"Could not find edge with tail {tail_name} and head\
+                {head_name}.")
+        edge = correct_edges[0]
+        return edge
+
 
 
 # Rectangle
 # rect = QGraphicsRectItem(0, 0, 60, 160)
 
-# Polygon
-# polygon = QPolygonF()
-# polygon.append(QPointF(0, 0))
-# polygon.append(QPointF(20, 20))
-# polygon.append(QPointF(30, 50))
-# polygonItem = QGraphicsPolygonItem(polygon)
-
-# Ellipse / circle
-# rect = QRectF(0, 0, 60, 160)
-# ellipse = QGraphicsEllipseItem(rect)
-# square = QRectF(0, 0, 60, 60)
-# circle = QGraphicsEllipseItem(square)
-
-# Text
-# text = QGraphicsTextItem("hello world")
 
 # Curve / straightline
 # /!\ Add a path to QPainterPath if there are several bezier curves
