@@ -4,7 +4,7 @@ from json import loads
 
 from PySide2.QtWidgets import (QGraphicsPolygonItem, QGraphicsEllipseItem, QGraphicsItem,
     QGraphicsRectItem, QGraphicsTextItem, QGraphicsPathItem)
-from PySide2.QtGui import QPolygonF, QPainterPath
+from PySide2.QtGui import QPolygonF, QPainterPath, QBrush, QColor, QPen
 from PySide2.QtCore import QRectF, QPointF
 
 from sot_gui.utils import (get_dict_with_element, get_dicts_with_element,
@@ -166,6 +166,7 @@ class JsonToQtGenerator:
                 j.TYPE, j.T_POLYGON)
         if head_data is not None and head_data.get(j.POINTS) is not None:
             head = self._generate_polygon(head_data)
+            head.setBrush(QBrush(QColor("black"))) # Filling it with black
             head.setParentItem(curve)
 
         return curve
