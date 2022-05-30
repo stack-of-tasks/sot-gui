@@ -104,8 +104,9 @@ class JsonToQtGenerator:
         node = get_dict_with_element(self._graph_data[j.OBJECTS], j.NAME, node_name)
         if node is None:
             raise ValueError(f"Node {node_name} could not be found in dot's json output.")
+        
         if node.get(j.STYLE) == 'invis': # If the node is invisible
-            return []
+            return None
 
         # Creating the node's body (node = body + label):
         qt_item_body = self._get_node_body(node[j.BODY_DRAW])
@@ -119,20 +120,25 @@ class JsonToQtGenerator:
 
     def get_qt_item_for_edge(self, head_name: str, tail_name: str) -> QGraphicsItem:
         # Getting the edge's display info:
-        edge = self._get_edge_per_nodes_names(head_name, tail_name)
+        edge_data = self._get_edge_per_nodes_names(head_name, tail_name)
+        if edge_data is None:
+            raise ValueError(f"Could not find edge with tail {tail_name} and head\
+                {head_name}.")
 
-        # Drawing the spline:
-        spline_data = get_dict_with_element_in_list(edge.get(j.BODY_DRAW), j.TYPE, j.T_SPLINE)
-        if spline_data is None or spline_data.get(j.POINTS) is None:
-            return
-        curve = self._generate_spline(spline_data.get(j.POINTS))
-        # TODO: add an additional path to QPainterPath if there are several bezier curves
+        if edge_data.get(j.STYLE) == 'invis': # If the edge is invisible
+            return None
 
-        # Drawing the head and setting the curve as its parent:
-        head_data = get_dict_with_element_in_list(edge.get(j.HEAD_DRAW), j.TYPE, j.T_POLYGON)
-        if head_data is not None and head_data.get(j.POINTS) is not None:
-            head = self._generate_polygon(head_data)
-            head.setParentItem(curve)
+        # Getting the edge's curve, and the tail and head as its children:
+        curve = self._get_edge_body(edge_data)
+        if curve is None:
+            return None
+
+        # Getting the labels:
+        for label_type in [j.LABEL_DRAW, j.HEAD_LABEL_DRAW, j.TAIL_LABEL_DRAW]:
+            label_data = edge_data.get(label_type)
+            if label_data is not None:
+                label = self._get_label(label_data)
+                label.setParentItem(curve)
         
         return curve
 
@@ -144,6 +150,25 @@ class JsonToQtGenerator:
         shape_type = shape_data[j.TYPE]
         qt_item_body = self._qt_generator_per_type[shape_type](shape_data)
         return qt_item_body
+
+
+    def _get_edge_body(self, edge_data: Dict[str, Any]) -> QGraphicsItem:
+        # Getting the spline:
+        spline_data = get_dict_with_element_in_list(edge_data.get(j.BODY_DRAW),
+                j.TYPE, j.T_SPLINE)
+        if spline_data is None or spline_data.get(j.POINTS) is None:
+            return None
+        curve = self._generate_spline(spline_data.get(j.POINTS))
+        # TODO: add an additional path to QPainterPath if there are several bezier curves
+
+        # Getting the head and setting the curve as its parent:
+        head_data = get_dict_with_element_in_list(edge_data.get(j.HEAD_DRAW),
+                j.TYPE, j.T_POLYGON)
+        if head_data is not None and head_data.get(j.POINTS) is not None:
+            head = self._generate_polygon(head_data)
+            head.setParentItem(curve)
+
+        return curve
 
 
     def _get_label(self, label_data: List[Dict]) -> QGraphicsItem:
@@ -256,7 +281,6 @@ class JsonToQtGenerator:
         # Among these edges, finding the one whose tail is `tail_name`:
         correct_edges = get_dicts_with_element(edges_with_correct_head, j.TAIL_ID, tail_id)
         if correct_edges == []:
-            raise ValueError(f"Could not find edge with tail {tail_name} and head\
-                {head_name}.")
+            return None
         edge = correct_edges[0]
         return edge
