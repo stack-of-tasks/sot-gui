@@ -347,8 +347,23 @@ class Graph:
         qt_generator = JsonToQtGenerator(out.decode('utf-8'))
         # For every node, we get its qt items:
         for node in self._input_nodes + self._dg_entities:
-            qt_item = qt_generator.get_qt_item_for_node(node.name())
-            node.set_qt_items([qt_item]) # TODO: make it a single item?
+            qt_item_node = qt_generator.get_qt_item_for_node(node.name())
+            node.set_qt_items([qt_item_node]) # TODO: make it a single item?
+
+            if isinstance(node, InputNode):
+                continue
+
+            for port in node.inputs():
+                edge = port.edge()
+                if edge is None:
+                    continue
+                head_name = edge.head().node().name()
+                tail_name = edge.tail().node().name()
+                print(head_name)
+                print(tail_name)
+                
+                qt_item_edge = qt_generator.get_qt_item_for_edge(head_name, tail_name)
+                edge.set_qt_items([qt_item_edge])
 
 
     def get_qt_items(self) -> List[QGraphicsItem]:
