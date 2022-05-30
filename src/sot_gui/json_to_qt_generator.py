@@ -265,23 +265,20 @@ class JsonToQtGenerator:
         return (x_coord, self._graph_bounding_box['height'] - y_coord)
 
 
-    def _get_node_gvid_per_name(self, name: str) -> int:
+    def _get_node_id_per_name(self, name: str) -> int:
         node = get_dict_with_element(self._graph_data[j.OBJECTS], j.NAME, name)
         return node.get(j.ID)
 
 
     def _get_edge_per_nodes_names(self, head_name: str, tail_name: str) -> Dict[str, Any]:
-        # Retrieving the nodes' _gvid IDs:
-        head_id = self._get_node_gvid_per_name(head_name)
-        tail_id = self._get_node_gvid_per_name(tail_name)
+        # Retrieving the nodes' IDs:
+        head_id = self._get_node_id_per_name(head_name)
+        tail_id = self._get_node_id_per_name(tail_name)
 
         # Getting the edges whose heads are `head_name`:
         all_edges = self._graph_data[j.EDGES]
         edges_with_correct_head = get_dicts_with_element(all_edges, j.HEAD_ID, head_id)
 
         # Among these edges, finding the one whose tail is `tail_name`:
-        correct_edges = get_dicts_with_element(edges_with_correct_head, j.TAIL_ID, tail_id)
-        if correct_edges == []:
-            return None
-        edge = correct_edges[0]
+        edge = get_dict_with_element(edges_with_correct_head, j.TAIL_ID, tail_id)
         return edge
