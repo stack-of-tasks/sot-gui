@@ -34,7 +34,7 @@ class JsonParsingUtils:
     TAIL_DRAW = '_tdraw_'
     LABEL_DRAW = '_ldraw_'
     HEAD_LABEL_DRAW = '_hldraw_'
-    TAIL_LABEL_DRAW = 'tldraw__'
+    TAIL_LABEL_DRAW = '_tldraw_'
 
     # Keys for displayed elements' attributes:
     TYPE = 'op' # Type of the json data object

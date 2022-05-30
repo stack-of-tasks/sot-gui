@@ -359,8 +359,6 @@ class Graph:
                     continue
                 head_name = edge.head().node().name()
                 tail_name = edge.tail().node().name()
-                print(head_name)
-                print(tail_name)
                 
                 qt_item_edge = qt_generator.get_qt_item_for_edge(head_name, tail_name)
                 edge.set_qt_items([qt_item_edge])
