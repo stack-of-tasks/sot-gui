@@ -63,27 +63,22 @@ class JsonToQtGenerator:
 
 
     def get_qt_item_for_edge(self, head_name: str, tail_name: str) -> QGraphicsItem:
+        # Getting the edge's display info:
         edge = self._get_edge_per_nodes_names(head_name, tail_name)
-        curve = self._get_edge_spline(edge)
-        
-        return curve
 
-
-    def _get_edge_spline(self, edge: Dict) -> QGraphicsItem:
+        # Drawing the spline:
+        spline_data = get_dict_with_element_in_list(edge.get('_draw_'), 'op', ['b', 'B'])
+        if spline_data is None or spline_data.get('points') is None:
+            return
+        curve = self._generate_spline(spline_data.get('points'))
         # TODO: add an additional path to QPainterPath if there are several bezier curves
-        pointsCurve = edge['_draw_'][1]['points']
-        coordsQt = []
-        for point in pointsCurve:
-           coordsQt.append(self._dot_coords_to_qt_coords((point[0], point[1])))
-        path = QPainterPath()
 
-        # Setting the first point:
-        path.moveTo(coordsQt[0][0], coordsQt[0][1])
-        # Setting the 3 next points:
-        path.cubicTo(coordsQt[1][0], coordsQt[1][1], coordsQt[2][0], coordsQt[2][1],
-            coordsQt[3][0], coordsQt[3][1])
-
-        curve = QGraphicsPathItem(path)
+        # Drawing the head and setting the curve as its parent:
+        # head_data = get_dict_with_element_in_list(edge.get('_hdraw_'), 'op', ['p', 'P'])
+        # if head_data is not None:
+        #     head = self._get_edge_head(head_data)
+        #     head.setParentItem(curve)
+        
         return curve
 
 
@@ -146,6 +141,24 @@ class JsonToQtGenerator:
         text = QGraphicsTextItem(data['text'])
         #text.setFont(font)
         return text
+
+
+    def _generate_spline(self, data: Dict[str, Any]) -> QGraphicsPathItem:
+        # Getting the points' qt coordinates:
+        coordsQt = []
+        for point in data:
+           coordsQt.append(self._dot_coords_to_qt_coords((point[0], point[1])))
+
+        path = QPainterPath()
+
+        # Setting the first point:
+        path.moveTo(coordsQt[0][0], coordsQt[0][1])
+        # Setting the 3 next points:
+        path.cubicTo(coordsQt[1][0], coordsQt[1][1], coordsQt[2][0], coordsQt[2][1],
+            coordsQt[3][0], coordsQt[3][1])
+
+        curve = QGraphicsPathItem(path)
+        return curve
 
 
     def _temporary_placeholder_function(self, _) -> QGraphicsRectItem:
