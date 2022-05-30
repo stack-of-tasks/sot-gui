@@ -181,9 +181,11 @@ class JsonToQtGenerator:
         font_data = get_dict_with_element_in_list(label_data, j.TYPE, j.T_FONT)
 
         # Setting its position:
+        dot_coords = (text_data[j.TEXT_POS][0], text_data[j.TEXT_POS][1])
+        qt_coords = self._dot_coords_to_qt_coords(dot_coords)
         position = QPointF(
-            text_data[j.TEXT_POS][0] - text_data[j.WIDTH] / 2,
-            text_data[j.TEXT_POS][1] - font_data[j.FONT_SIZE] / 2
+            qt_coords[0] - text_data[j.WIDTH] / 2,
+            qt_coords[1] - font_data[j.FONT_SIZE]
         )
         qt_item_label.setPos(position)
 

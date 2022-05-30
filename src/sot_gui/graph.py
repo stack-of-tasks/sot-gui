@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE
 from copy import deepcopy
 
 from PySide2.QtWidgets import QGraphicsItem, QGraphicsRectItem
+from defer import return_value
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 from sot_gui.dot_data_generator import DotDataGenerator
@@ -254,16 +255,21 @@ class Graph:
         sig_name = plug_info['name']
         child_node_name = child_node.name()
 
+        # Getting the description of the plug this signal is plugged to, 
+        # i.e an output signal of the parent entity:
+        is_plugged = self._dg_communication.is_signal_plugged(child_node_name, sig_name)
+        if not is_plugged:
+            return
+        linked_plug_descr = self._dg_communication.get_linked_plug(child_node_name, sig_name)
+        if linked_plug_descr is None: # If the node doesn't have a parent node
+            return
+        linked_plug_info = self._parse_signal_description(linked_plug_descr)
+
         signal_value = self._dg_communication.get_signal_value(child_node_name, sig_name)
         new_edge = Edge(signal_value, plug_info['value_type'])
 
         # Linking the signal to the child port:
         child_node.set_edge_for_port(new_edge, plug_info['name'])
-
-        # Getting the description of the plug this signal is plugged to, 
-        # i.e an output signal of the parent entity:
-        linked_plug_descr = self._dg_communication.get_linked_plug(child_node_name, sig_name)
-        linked_plug_info = self._parse_signal_description(linked_plug_descr)
 
         # If the signal is autoplugged (i.e has a fixed value instead of
         # being plugged to a another entity), the entity will appear as
@@ -324,6 +330,8 @@ class Graph:
 
             input_edges = [ port.edge() for port in entity.inputs() ]
             for edge in input_edges:
+                if edge is None:
+                    continue
                 parent_node_name = edge.tail().node().name()
                 # The value is displayed only if the parent node isn't an InputNode:
                 attributes = None
@@ -364,6 +372,12 @@ class Graph:
                 edge.set_qt_items([qt_item_edge])
 
 
+    def _clear_dg_data(self) -> None:
+        self._dg_entities = []
+        self._input_nodes = []
+        self._graph_info = {}
+
+
     def get_qt_items(self) -> List[QGraphicsItem]:
         self._generate_qt_items()
         qt_items = []
@@ -390,5 +404,6 @@ class Graph:
         """ This function updates the graph by fetching the dynamic graph's data,
             generating a new graph layout with dot and creating the needed qt items.
         """
+        self._clear_dg_data()
         self._get_dg_data()
         self._generate_qt_items()
