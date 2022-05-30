@@ -10,8 +10,10 @@ from PySide2.QtCore import QRectF, QPointF
 from sot_gui.utils import (get_dict_with_element, get_dicts_with_element,
     get_dict_with_element_in_list)
 
+
 # Documentation on dot's json output:
 # https://graphviz.org/docs/outputs/json/
+
 
 class JsonParsingUtils:
     # Keys for lists of clusters, nodes and edges:
@@ -48,6 +50,16 @@ class JsonParsingUtils:
     FONT = 'face'
     FONT_SIZE = 'size'
 
+    # Possible values for json data objects' types (TYPE):
+    T_STYLE = ['S']
+    T_COLOR = ['c', 'C']
+    T_FONT = ['F']
+    T_TEXT = ['t', 'T']
+    T_POLYGON = ['p', 'P']
+    T_ELLIPSE = ['e', 'E']
+    T_SPLINE = ['b', 'B']
+    T_POLYLINE = ['L']
+
 j = JsonParsingUtils
 
 
@@ -56,19 +68,19 @@ class JsonToQtGenerator:
 
     def __init__(self, json_string: str):
         self._qt_generator_per_type = {
-            'S': self._generate_rectangle, # Style
-            'c': self._generate_rectangle, # Color
-            'C': self._generate_rectangle, # Color
-            'F': self._generate_rectangle, # Font
-            't': self._generate_rectangle, # Font?
-            'T': self._generate_text, # Text
-            'p': self._generate_polygon,
-            'P': self._generate_polygon,
-            'e': self._generate_ellipse,
-            'E': self._generate_ellipse,
-            'b': self._generate_spline, # Bezier spline
-            'B': self._generate_spline, # Bezier spline
-            'L': self._generate_rectangle, # Polyline
+            # j.T_STYLE[0]: self._generate_rectangle,
+            # j.T_COLOR[0] self._generate_rectangle,
+            # j.T_COLOR[1]: self._generate_rectangle,
+            # j.T_FONT[0]: self._generate_rectangle,
+            j.T_TEXT[0]: self._generate_text,
+            j.T_TEXT[1]: self._generate_text,
+            j.T_POLYGON[0]: self._generate_polygon,
+            j.T_POLYGON[1]: self._generate_polygon,
+            j.T_ELLIPSE[0]: self._generate_ellipse,
+            j.T_ELLIPSE[1]: self._generate_ellipse,
+            j.T_SPLINE[0]: self._generate_spline,
+            j.T_SPLINE[1]: self._generate_spline,
+            # j.T_POLYGON[0]: self._generate_rectangle,
         }
 
         self._graph_data: Dict[str, Any] = loads(json_string)
@@ -89,7 +101,7 @@ class JsonToQtGenerator:
 
     def get_qt_item_for_node(self, node_name: str) -> QGraphicsItem:
         # Getting the node whose name is `node_name`:
-        node = get_dict_with_element(self._graph_data[j.OBJECTS], 'name', node_name)
+        node = get_dict_with_element(self._graph_data[j.OBJECTS], j.NAME, node_name)
         if node is None:
             raise ValueError(f"Node {node_name} could not be found in dot's json output.")
         if node.get(j.STYLE) == 'invis': # If the node is invisible
@@ -110,14 +122,14 @@ class JsonToQtGenerator:
         edge = self._get_edge_per_nodes_names(head_name, tail_name)
 
         # Drawing the spline:
-        spline_data = get_dict_with_element_in_list(edge.get(j.BODY_DRAW), j.TYPE, ['b', 'B'])
+        spline_data = get_dict_with_element_in_list(edge.get(j.BODY_DRAW), j.TYPE, j.T_SPLINE)
         if spline_data is None or spline_data.get(j.POINTS) is None:
             return
         curve = self._generate_spline(spline_data.get(j.POINTS))
         # TODO: add an additional path to QPainterPath if there are several bezier curves
 
         # Drawing the head and setting the curve as its parent:
-        head_data = get_dict_with_element_in_list(edge.get(j.HEAD_DRAW), j.TYPE, ['p', 'P'])
+        head_data = get_dict_with_element_in_list(edge.get(j.HEAD_DRAW), j.TYPE, j.T_POLYGON)
         if head_data is not None and head_data.get(j.POINTS) is not None:
             head = self._generate_polygon(head_data)
             head.setParentItem(curve)
@@ -128,7 +140,7 @@ class JsonToQtGenerator:
     def _get_node_body(self, body_data: List[Dict]) -> QGraphicsItem:
         # Getting the body's shape:
         shape_data = get_dict_with_element_in_list(body_data, j.TYPE,
-                ['p', 'P', 'e', 'E'])
+                j.T_POLYGON + j.T_ELLIPSE)
         shape_type = shape_data[j.TYPE]
         qt_item_body = self._qt_generator_per_type[shape_type](shape_data)
         return qt_item_body
@@ -136,11 +148,11 @@ class JsonToQtGenerator:
 
     def _get_label(self, label_data: List[Dict]) -> QGraphicsItem:
         # Getting the text:
-        text_data = get_dict_with_element(label_data, j.TYPE, 'T')
+        text_data = get_dict_with_element_in_list(label_data, j.TYPE, j.T_TEXT)
         qt_item_label = self._generate_text(text_data)
 
         # Getting the font info:
-        font_data = get_dict_with_element(label_data, j.TYPE, 'F')
+        font_data = get_dict_with_element_in_list(label_data, j.TYPE, j.T_FONT)
 
         # Setting its position:
         position = QPointF(
