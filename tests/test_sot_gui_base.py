@@ -1,9 +1,10 @@
 import unittest
 from pathlib import Path
-import time
+from time import sleep
 from subprocess import Popen
 
-from sot_ipython_connection.sot_kernel import SOTKernel
+
+input_scripts_dir = str(Path(__file__).resolve().parent/'dg_scripts')
 
 
 class TestSotGuiBase(unittest.TestCase):
@@ -16,10 +17,7 @@ class TestSotGuiBase(unittest.TestCase):
             'sot_ipython_connection'/'app'/'sot_interpreter.py'
         )
         self.kernel_process = Popen(["python3", interpreter_path])
-        time.sleep(5)
-
-        self.kernel = SOTKernel()
-        self.kernel.run()
+        sleep(5)
 
 
     @classmethod
