@@ -3,8 +3,7 @@ from typing import List, Any, Dict
 from subprocess import Popen, PIPE
 from copy import deepcopy
 
-from PySide2.QtWidgets import QGraphicsItem, QGraphicsRectItem
-from defer import return_value
+from PySide2.QtWidgets import QGraphicsItem
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 from sot_gui.dot_data_generator import DotDataGenerator
