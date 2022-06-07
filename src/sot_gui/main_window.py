@@ -1,7 +1,8 @@
 from PySide2.QtCore import Qt
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
-    QToolBar, QAction)
+    QToolBar, QAction, QGraphicsRectItem, QGraphicsPolygonItem)
+from PySide2.QtGui import QColor
 
 from sot_gui.graph import Graph
 
@@ -22,11 +23,27 @@ class MainWindow(QMainWindow):
 
         toolbar = QToolBar("Toolbar")
         self.addToolBar(toolbar)
-        button_action = QAction("Refresh", self)
-        button_action.setStatusTip("Refresh the graph")
-        button_action.triggered.connect(self._scene.refresh_graph)
-        toolbar.addAction(button_action)
 
+        button_refresh = QAction("Refresh", self)
+        #button_refresh.setStatusTip("Refresh the graph")
+        button_refresh.triggered.connect(self._scene.refresh_graph)
+        toolbar.addAction(button_refresh)
+
+        button_add_rect = QAction("Add rect", self)
+        #button_add_rect.setStatusTip("Refresh the graph")
+        button_add_rect.triggered.connect(self._scene.add_rect)
+        toolbar.addAction(button_add_rect)
+
+        button_change_color = QAction("Change color", self)
+        #button_change_color.setStatusTip("Refresh the graph")
+        button_change_color.triggered.connect(self._scene.change_color)
+        toolbar.addAction(button_change_color)
+
+        button_nb_items = QAction("Print nb items", self)
+        #button_nb_items.setStatusTip("Refresh the graph")
+        button_nb_items.triggered.connect(self._scene.print_nb_items)
+        toolbar.addAction(button_nb_items)
+        
 
 class GraphScene(QGraphicsScene):
 
@@ -45,3 +62,19 @@ class GraphScene(QGraphicsScene):
             self.addItem(item)
 
         # TODO: update scene's background color, size, etc
+
+
+    def add_rect(self):
+        self.addItem(QGraphicsRectItem(0, 0, 1000, 1000))
+
+
+    def change_color(self):
+        items = self.items()
+        for item in items:
+            if isinstance(item, QGraphicsPolygonItem):
+                item.setBrush(QColor("red"))
+
+
+    def print_nb_items(self):
+        items = self.items()
+        print(len(items))

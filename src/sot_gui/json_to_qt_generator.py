@@ -4,7 +4,7 @@ from json import loads
 
 from PySide2.QtWidgets import (QGraphicsPolygonItem, QGraphicsEllipseItem, QGraphicsItem,
     QGraphicsRectItem, QGraphicsTextItem, QGraphicsPathItem)
-from PySide2.QtGui import QPolygonF, QPainterPath, QBrush, QColor, QPen
+from PySide2.QtGui import QPolygonF, QPainterPath, QBrush, QColor
 from PySide2.QtCore import QRectF, QPointF
 
 from sot_gui.utils import (get_dict_with_element, get_dicts_with_element,
