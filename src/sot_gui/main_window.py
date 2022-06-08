@@ -1,8 +1,5 @@
-from PySide2.QtCore import Qt
-
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView, QToolBar,
-    QAction, QGraphicsRectItem, QGraphicsPolygonItem, QDialog, QDialogButtonBox,
-    QVBoxLayout, QLabel)
+    QAction, QGraphicsRectItem, QGraphicsPolygonItem, QMessageBox)
 from PySide2.QtGui import QColor
 
 from sot_gui.graph import Graph
@@ -72,7 +69,7 @@ class GraphScene(QGraphicsScene):
                 self.addItem(item)
 
         except:
-            self.dialog_box_reconnect()
+            self.message_box_reconnect()
 
         # TODO: update scene's size, etc
 
@@ -82,24 +79,19 @@ class GraphScene(QGraphicsScene):
         self.refresh_graph()
 
 
-    def dialog_box_reconnect(self):
-        dialog_box = QDialog(self.parent())
-        dialog_box.setWindowTitle("No connection")
-        dialog_box.layout = QVBoxLayout()
+    def message_box_reconnect(self):
+        message_box = QMessageBox(self.parent())
+        message_box.setWindowTitle("No connection")
 
         # Asking the user if they want to reconnect and refresh:
-        message = QLabel("The connection to the kernel has been closed. Reconnect?")
-        dialog_box.layout.addWidget(message)
+        message_box.setText("The connection to the kernel has been closed.")
+        message_box.setInformativeText('Do you want to reconnect and refresh?')
+        message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        message_box.setDefaultButton(QMessageBox.Yes)
 
-        # Adding the yes / no buttons:
-        buttons = QDialogButtonBox.No | QDialogButtonBox.Yes
-        buttonBox = QDialogButtonBox(buttons)
-        buttonBox.accepted.connect(self.reconnect_to_kernel)
-        buttonBox.rejected.connect(None)
-        dialog_box.layout.addWidget(buttonBox)
-
-        dialog_box.setLayout(dialog_box.layout)
-        dialog_box.exec_()
+        return_value = message_box.exec_()
+        if return_value == QMessageBox.Yes:
+            self.reconnect_to_kernel()    
 
 
     def add_rect(self):
