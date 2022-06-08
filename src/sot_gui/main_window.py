@@ -1,7 +1,8 @@
 from PySide2.QtCore import Qt
 
-from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
-    QToolBar, QAction, QGraphicsRectItem, QGraphicsPolygonItem)
+from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView, QToolBar,
+    QAction, QGraphicsRectItem, QGraphicsPolygonItem, QDialog, QDialogButtonBox,
+    QVBoxLayout, QLabel)
 from PySide2.QtGui import QColor
 
 from sot_gui.graph import Graph
@@ -29,6 +30,11 @@ class MainWindow(QMainWindow):
         button_refresh.triggered.connect(self._scene.refresh_graph)
         toolbar.addAction(button_refresh)
 
+        button_reconnect = QAction("Reconnect", self)
+        #button_reconnect.setStatusTip("Refresh the graph")
+        button_reconnect.triggered.connect(self._scene.reconnect_to_kernel)
+        toolbar.addAction(button_reconnect)
+
         button_add_rect = QAction("Add rect", self)
         #button_add_rect.setStatusTip("Refresh the graph")
         button_add_rect.triggered.connect(self._scene.add_rect)
@@ -43,11 +49,6 @@ class MainWindow(QMainWindow):
         #button_nb_items.setStatusTip("Refresh the graph")
         button_nb_items.triggered.connect(self._scene.print_nb_items)
         toolbar.addAction(button_nb_items)
-
-        button_reconnect = QAction("Reconnect", self)
-        #button_reconnect.setStatusTip("Refresh the graph")
-        button_reconnect.triggered.connect(self._scene.reconnect_to_kernel)
-        toolbar.addAction(button_reconnect)
         
 
 class GraphScene(QGraphicsScene):
@@ -60,13 +61,45 @@ class GraphScene(QGraphicsScene):
 
 
     def refresh_graph(self):
-        self.clear()
-        self._graph.refresh_graph()
-        self._items = self._graph.get_qt_items()
-        for item in self._items:
-            self.addItem(item)
+        # Trying to get data from the kernel. Suggest reconnecting if the
+        # connection to the kernel is not open:
+
+        try:
+            self._graph.refresh_graph()
+            self.clear()
+            self._items = self._graph.get_qt_items()
+            for item in self._items:
+                self.addItem(item)
+
+        except:
+            self.dialog_box_reconnect()
 
         # TODO: update scene's size, etc
+
+
+    def reconnect_to_kernel(self):
+        self._graph.reconnect_to_kernel()
+        self.refresh_graph()
+
+
+    def dialog_box_reconnect(self):
+        dialog_box = QDialog(self.parent())
+        dialog_box.setWindowTitle("No connection")
+        dialog_box.layout = QVBoxLayout()
+
+        # Asking the user if they want to reconnect and refresh:
+        message = QLabel("The connection to the kernel has been closed. Reconnect?")
+        dialog_box.layout.addWidget(message)
+
+        # Adding the yes / no buttons:
+        buttons = QDialogButtonBox.No | QDialogButtonBox.Yes
+        buttonBox = QDialogButtonBox(buttons)
+        buttonBox.accepted.connect(self.reconnect_to_kernel)
+        buttonBox.rejected.connect(None)
+        dialog_box.layout.addWidget(buttonBox)
+
+        dialog_box.setLayout(dialog_box.layout)
+        dialog_box.exec_()
 
 
     def add_rect(self):
@@ -83,8 +116,3 @@ class GraphScene(QGraphicsScene):
     def print_nb_items(self):
         items = self.items()
         print(len(items))
-
-
-    def reconnect_to_kernel(self):
-        self._graph.reconnect_to_kernel()
-        self.refresh_graph()

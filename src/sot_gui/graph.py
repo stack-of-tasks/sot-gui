@@ -214,6 +214,7 @@ class Graph:
 
 
     def _get_dg_data(self) -> None:
+
         # Gettings every entity:
         entities_names = self._dg_communication.get_all_entities_names()
         if entities_names is None:
@@ -410,5 +411,4 @@ class Graph:
 
     def reconnect_to_kernel(self):
         """ Create a new connection to the latest kernel. """
-
         self._dg_communication.reconnect_to_kernel()

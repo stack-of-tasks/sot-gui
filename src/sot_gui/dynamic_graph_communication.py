@@ -29,21 +29,17 @@ class DynamicGraphCommunication():
 
     def run(self, code: str, ret_value: bool = True) -> Any:
         """ Runs code on the remote server, and returns a value if needed. """
-        try:
-            response = self._client.run_python_command(code)
-                
-            if response.stdout:
-                print(response.stdout)
-            if response.stderr:
-                print(response.stderr)
+        response = self._client.run_python_command(code)
             
-            if response.result:
-                if not ret_value:
-                    return
-                return response.result
-
-        except ConnectionError: # TODO: ask to reconnect?
-            print('ConnectionError')
+        if response.stdout:
+            print(response.stdout)
+        if response.stderr:
+            print(response.stderr)
+        
+        if response.result:
+            if not ret_value:
+                return
+            return response.result
 
 
     def get_all_entities_names(self) -> List[str]:
