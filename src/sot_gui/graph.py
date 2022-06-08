@@ -406,3 +406,9 @@ class Graph:
         self._clear_dg_data()
         self._get_dg_data()
         self._generate_qt_items()
+
+
+    def reconnect_to_kernel(self):
+        """ Create a new connection to the latest kernel. """
+
+        self._dg_communication.reconnect_to_kernel()

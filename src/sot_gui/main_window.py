@@ -43,6 +43,11 @@ class MainWindow(QMainWindow):
         #button_nb_items.setStatusTip("Refresh the graph")
         button_nb_items.triggered.connect(self._scene.print_nb_items)
         toolbar.addAction(button_nb_items)
+
+        button_reconnect = QAction("Reconnect", self)
+        #button_reconnect.setStatusTip("Refresh the graph")
+        button_reconnect.triggered.connect(self._scene.reconnect_to_kernel)
+        toolbar.addAction(button_reconnect)
         
 
 class GraphScene(QGraphicsScene):
@@ -61,7 +66,7 @@ class GraphScene(QGraphicsScene):
         for item in self._items:
             self.addItem(item)
 
-        # TODO: update scene's background color, size, etc
+        # TODO: update scene's size, etc
 
 
     def add_rect(self):
@@ -78,3 +83,8 @@ class GraphScene(QGraphicsScene):
     def print_nb_items(self):
         items = self.items()
         print(len(items))
+
+
+    def reconnect_to_kernel(self):
+        self._graph.reconnect_to_kernel()
+        self.refresh_graph()

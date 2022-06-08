@@ -3,11 +3,26 @@ from sot_ipython_connection.sot_client import SOTClient
 
 
 class DynamicGraphCommunication():
-    """ This class allows to communicate with a SoT dynamic graph, which can
-        be local or on a remote server.
+    """ This class allows to communicate with a SoT dynamic graph on a remote
+        kernel.
     """
 
     def __init__(self):
+        self._client = SOTClient()
+        self._import_dynamic_graph()
+        
+
+    def _import_dynamic_graph(self) -> None:
+        """ Imports the dynamic graph. """
+        self.run("import dynamic_graph as dg", False)
+
+
+    def reconnect_to_kernel(self):
+        """ Recreates a client that will connect to the latest kernel. """
+
+        # It's not possible to keep the client and reconnect it to a new kernel:
+        # we have to create a new one
+        del self._client
         self._client = SOTClient()
         self._import_dynamic_graph()
 
@@ -15,9 +30,6 @@ class DynamicGraphCommunication():
     def run(self, code: str, ret_value: bool = True) -> Any:
         """ Runs code on the remote server, and returns a value if needed. """
         try:
-            # TODO: reconnect if the server was restarted
-            # -> SOTClient.is_kernel_alive() (-> bool)
-
             response = self._client.run_python_command(code)
                 
             if response.stdout:
@@ -30,13 +42,8 @@ class DynamicGraphCommunication():
                     return
                 return response.result
 
-        except: # TODO: try to reconnect?
-            ...
-        
-
-    def _import_dynamic_graph(self) -> None:
-        """ Imports the dynamic graph. """
-        self.run("import dynamic_graph as dg", False)
+        except ConnectionError: # TODO: ask to reconnect?
+            print('ConnectionError')
 
 
     def get_all_entities_names(self) -> List[str]:
