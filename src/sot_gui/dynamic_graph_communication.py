@@ -6,6 +6,7 @@ class DynamicGraphCommunication():
     """ This class allows to communicate with a SoT dynamic graph on a remote kernel. """
 
     def __init__(self):
+        self._client: SOTClient = None
         self.connect_to_kernel()
         
 
