@@ -13,16 +13,19 @@ class DynamicGraphCommunication():
         
 
     def _import_dynamic_graph(self) -> None:
-        """ Imports the dynamic graph. """
+        """ Imports the dynamic graph.
+            Raises a ConnectionError if the kernel is not running.
+        """
         self.run("import dynamic_graph as dg", False)
 
 
     def reconnect_to_kernel(self):
-        """ Recreates a client that will connect to the latest kernel. """
+        """ Recreates a client that will connect to the latest kernel.
+            Raises a ConnectionError if the kernel is not running.
+        """
 
         # It's not possible to keep the client and reconnect it to a new kernel:
         # we have to create a new one
-        del self._client
         self._client = SOTClient()
         self._import_dynamic_graph()
 

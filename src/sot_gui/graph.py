@@ -214,6 +214,11 @@ class Graph:
 
 
     def _get_dg_data(self) -> None:
+        """ Fetches the graph data from the dynamic graph and fills the `_dg_entities`
+            and `_input_nodes` lists with `Nodes`, `Ports` and `Edges`.
+            This method does not create their qt items.
+            Raises a ConnectionError if there is no connection to the kernel.
+        """
 
         # Gettings every entity:
         entities_names = self._dg_communication.get_all_entities_names()
@@ -311,6 +316,10 @@ class Graph:
 
 
     def _get_encoded_dot_code(self) -> bytes:
+        """ Returns an encoded dot string of the graph data (as generated
+            by the `_get_dg_data` method).
+        """
+
         dot_generator = DotDataGenerator()
         dot_generator.set_graph_attributes({'rankdir': quoted('LR')})
 
@@ -373,12 +382,15 @@ class Graph:
 
 
     def _clear_dg_data(self) -> None:
+        """ Resets all the information on nodes, ports and edges and their qt items. """
         self._dg_entities = []
         self._input_nodes = []
         self._graph_info = {}
 
 
     def get_qt_items(self) -> List[QGraphicsItem]:
+        """ Returns a list of all the qt items necessary to display the graph. """
+
         self._generate_qt_items()
         qt_items = []
 
@@ -403,6 +415,7 @@ class Graph:
     def refresh_graph(self):
         """ This function updates the graph by fetching the dynamic graph's data,
             generating a new graph layout with dot and creating the needed qt items.
+            Raises a ConnectionError if there is no connection to the kernel.
         """
         self._clear_dg_data()
         self._get_dg_data()
@@ -410,5 +423,7 @@ class Graph:
 
 
     def reconnect_to_kernel(self):
-        """ Create a new connection to the latest kernel. """
+        """ Create a new connection to the latest kernel.
+            Raises a ConnectionError if there is no connection to the kernel.
+        """
         self._dg_communication.reconnect_to_kernel()
