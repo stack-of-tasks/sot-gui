@@ -6,7 +6,7 @@ class DynamicGraphCommunication():
     """ This class allows to communicate with a SoT dynamic graph on a remote kernel. """
 
     def __init__(self):
-        self._client: SOTClient = None
+        self._client = SOTClient()
         self.connect_to_kernel()
         
 
@@ -17,17 +17,15 @@ class DynamicGraphCommunication():
         self.run("import dynamic_graph as dg", False)
 
 
-    def connect_to_kernel(self):
-        """ Recreates a client that will connect to the latest kernel. """
-
-        # It's not possible to keep the client and reconnect it to a new kernel:
-        # we have to create a new one
-        self._client = SOTClient()
+    def connect_to_kernel(self) -> None:
+        """ Launches a new client that will connect to the latest kernel. """
+        
+        self._client.connect_to_kernel()
         try:
             self._import_dynamic_graph()
         except ConnectionError:
-            print('DynamicGraphCommunication.__init__: could not import dynamic graph' +
-                ' into kernel (no connection)')
+            print('DynamicGraphCommunication.connect_to_kernel: could not import' +
+                ' dynamic graph into kernel (no connection)')
 
 
     def run(self, code: str, ret_value: bool = True) -> Any:
