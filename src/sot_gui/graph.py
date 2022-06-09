@@ -189,10 +189,13 @@ class Edge:
 class Graph:
     """ This class holds the graph's information: it gets the dynamic graph's
         entities and signals, and generates their corresponding PySide items.
+
+        Constructor argument:
+        - `dg_communication`: will be used to fetch data from the dynamic graph
     """
 
-    def __init__(self):
-        self._dg_communication = DynamicGraphCommunication()
+    def __init__(self, dg_communication: DynamicGraphCommunication):
+        self._dg_communication = dg_communication
 
         # Entities that exist in the dynamic graph:
         self._dg_entities: List[EntityNode] = []
@@ -420,10 +423,3 @@ class Graph:
         self._clear_dg_data()
         self._get_dg_data()
         self._generate_qt_items()
-
-
-    def reconnect_to_kernel(self):
-        """ Create a new connection to the latest kernel.
-            Raises a ConnectionError if there is no connection to the kernel.
-        """
-        self._dg_communication.connect_to_kernel()

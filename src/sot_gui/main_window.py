@@ -3,6 +3,7 @@ from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView, QTool
 from PySide2.QtGui import QColor
 
 from sot_gui.graph import Graph
+from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
 class MainWindow(QMainWindow):
@@ -88,8 +89,9 @@ class GraphScene(QGraphicsScene):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self._dg_communication = DynamicGraphCommunication()
         #self.setSceneRect(0, 0, 1000, 750)
-        self._graph = Graph()
+        self._graph = Graph(self._dg_communication)
 
 
     def refresh(self):
@@ -106,7 +108,7 @@ class GraphScene(QGraphicsScene):
 
     def reconnect_and_refresh(self):
         """ Raises a ConnectionError if the kernel is not running. """
-        self._graph.reconnect_to_kernel()
+        self._dg_communication.connect_to_kernel()
         self.refresh()
 
 
