@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
 
         return_value = message_box.exec_()
         if return_value == QMessageBox.Yes:
-            self._graph_scene.reconnect_and_refresh()  
+            self.reconnect_and_refresh_graph()  
         
 
 class GraphScene(QGraphicsScene):
