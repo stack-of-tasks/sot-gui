@@ -426,4 +426,4 @@ class Graph:
         """ Create a new connection to the latest kernel.
             Raises a ConnectionError if there is no connection to the kernel.
         """
-        self._dg_communication.reconnect_to_kernel()
+        self._dg_communication.connect_to_kernel()

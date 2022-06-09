@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
         self._view.setSceneRect(0, 0, 900, 650)
         #self._view.fitInView(0, 0, 900, 650, Qt.KeepAspectRatio)
 
+        # Adding a toolbar with buttons:
         toolbar = QToolBar("Toolbar")
         self.addToolBar(toolbar)
 
@@ -41,6 +42,9 @@ class MainWindow(QMainWindow):
         button_nb_items = QAction("Print nb items", self)
         button_nb_items.triggered.connect(self._graph_scene.print_nb_items)
         toolbar.addAction(button_nb_items)
+
+        # Displaying the graph:
+        self.refresh_graph()
 
 
     #
@@ -70,8 +74,8 @@ class MainWindow(QMainWindow):
         message_box.setWindowTitle("No connection")
 
         # Asking the user if they want to reconnect and refresh:
-        message_box.setText("The connection to the kernel has been closed.")
-        message_box.setInformativeText('Do you want to reconnect and refresh?')
+        message_box.setText("There is no connection to the kernel.")
+        message_box.setInformativeText('Try to connect again and refresh the graph?')
         message_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         message_box.setDefaultButton(QMessageBox.Yes)
 
@@ -86,7 +90,6 @@ class GraphScene(QGraphicsScene):
         super().__init__(parent)
         #self.setSceneRect(0, 0, 1000, 750)
         self._graph = Graph()
-        self.refresh()
 
 
     def refresh(self):

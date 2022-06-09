@@ -3,13 +3,10 @@ from sot_ipython_connection.sot_client import SOTClient
 
 
 class DynamicGraphCommunication():
-    """ This class allows to communicate with a SoT dynamic graph on a remote
-        kernel.
-    """
+    """ This class allows to communicate with a SoT dynamic graph on a remote kernel. """
 
     def __init__(self):
-        self._client = SOTClient()
-        self._import_dynamic_graph()
+        self.connect_to_kernel()
         
 
     def _import_dynamic_graph(self) -> None:
@@ -19,15 +16,17 @@ class DynamicGraphCommunication():
         self.run("import dynamic_graph as dg", False)
 
 
-    def reconnect_to_kernel(self):
-        """ Recreates a client that will connect to the latest kernel.
-            Raises a ConnectionError if the kernel is not running.
-        """
+    def connect_to_kernel(self):
+        """ Recreates a client that will connect to the latest kernel. """
 
         # It's not possible to keep the client and reconnect it to a new kernel:
         # we have to create a new one
         self._client = SOTClient()
-        self._import_dynamic_graph()
+        try:
+            self._import_dynamic_graph()
+        except ConnectionError:
+            print('DynamicGraphCommunication.__init__: could not import dynamic graph' +
+                ' into kernel (no connection)')
 
 
     def run(self, code: str, ret_value: bool = True) -> Any:
