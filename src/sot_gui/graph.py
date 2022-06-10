@@ -216,6 +216,20 @@ class Graph:
         return None
 
 
+    def refresh_graph(self):
+        """ This function updates the graph by fetching the dynamic graph's data,
+            generating a new graph layout with dot and creating the needed qt items.
+            Raises a ConnectionError if there is no connection to the kernel.
+        """
+        self._clear_dg_data()
+        self._get_dg_data()
+        self._generate_qt_items()
+
+
+    #
+    # DYNAMIC GRAPH DATA FETCHING
+    #
+
     def _get_dg_data(self) -> None:
         """ Fetches the graph data from the dynamic graph and fills the `_dg_entities`
             and `_input_nodes` lists with `Nodes`, `Ports` and `Edges`.
@@ -318,16 +332,42 @@ class Graph:
             return None
 
 
+    def _clear_dg_data(self) -> None:
+        """ Resets all the information on nodes, ports and edges and their qt items. """
+        self._dg_entities = []
+        self._input_nodes = []
+        self._graph_info = {}
+
+
+    #
+    # DOT CODE GENERATION
+    #
+
     def _get_encoded_dot_code(self) -> bytes:
         """ Returns an encoded dot string of the graph data (as generated
             by the `_get_dg_data` method).
         """
 
         dot_generator = DotDataGenerator()
+
+        # Setting the graph's layout to `left to right`:
         dot_generator.set_graph_attributes({'rankdir': quoted('LR')})
 
-        # Adding the input nodes:
+        # Adding the nodes and their ports (if needed), and then the edges:
+        self._add_input_nodes_to_dot_code(dot_generator)
+        self._add_entity_nodes_to_dot_code(dot_generator)
+        self._add_edges_to_dot_code(dot_generator)
+
+        return dot_generator.get_encoded_dot_string()
+
+
+    def _add_input_nodes_to_dot_code(self, dot_generator: DotDataGenerator):
+        """ Adds all of the graph's input nodes to the given dot data generator. """
+
+        # From now on, every added node will be round:
         dot_generator.set_node_attributes({'shape': 'circle'})
+
+        # For every input, we only display a node (and not its output port):
         for node in self._input_nodes:
             output_ports = node.outputs()
             if len(output_ports) != 1:
@@ -335,24 +375,44 @@ class Graph:
             output_value = output_ports[0].edge().value()
             dot_generator.add_node(node.name(), {'label': output_value})
 
-        # Adding the dynamic graph entities' nodes and their input edges:
+
+    def _add_entity_nodes_to_dot_code(self, dot_generator: DotDataGenerator):
+        """ Adds all of the graph's entity nodes, with their ports, to the given
+            dot data generator.
+        """
+
+        # From now on, every added node will be rectangle:
         dot_generator.set_node_attributes({'shape': 'box'})
+
         for entity in self._dg_entities:
             dot_generator.add_node(entity.name(), {'label': quoted(entity.name())})
 
+
+    def _add_edges_to_dot_code(self, dot_generator: DotDataGenerator):
+        """ Adds all of the graph's edges to the given dot data generator. """
+
+        # We only handle input edges so as to not add an edge twice: only entity
+        # nodes can have inputs, and they cannot have outputs.
+        for entity in self._dg_entities:
             input_edges = [ port.edge() for port in entity.inputs() ]
+
             for edge in input_edges:
-                if edge is None:
+                if edge is None: # If that port is not plugged to a signal
                     continue
+
+                # Node whose output is linked this input via this signal:
                 parent_node_name = edge.tail().node().name()
+
                 # The value is displayed only if the parent node isn't an InputNode:
                 attributes = None
                 if isinstance(self._get_node_per_name(parent_node_name), EntityNode):
                     attributes = {'label': edge.value()}
                 dot_generator.add_edge(parent_node_name, entity.name(), attributes)
 
-        return dot_generator.get_encoded_dot_string()
 
+    #
+    # QT ITEMS GENERATION
+    #
 
     def _generate_qt_items(self) -> None:
         """ For each Node, Port and Edge, this function generates the corresponding
@@ -384,13 +444,6 @@ class Graph:
                 edge.set_qt_items([qt_item_edge])
 
 
-    def _clear_dg_data(self) -> None:
-        """ Resets all the information on nodes, ports and edges and their qt items. """
-        self._dg_entities = []
-        self._input_nodes = []
-        self._graph_info = {}
-
-
     def get_qt_items(self) -> List[QGraphicsItem]:
         """ Returns a list of all the qt items necessary to display the graph. """
 
@@ -413,13 +466,3 @@ class Graph:
                     qt_items += port.edge().qt_items()
 
         return qt_items
-
-
-    def refresh_graph(self):
-        """ This function updates the graph by fetching the dynamic graph's data,
-            generating a new graph layout with dot and creating the needed qt items.
-            Raises a ConnectionError if there is no connection to the kernel.
-        """
-        self._clear_dg_data()
-        self._get_dg_data()
-        self._generate_qt_items()
