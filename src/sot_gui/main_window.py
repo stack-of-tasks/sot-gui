@@ -11,14 +11,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Stack Of Tasks GUI")
 
+        # Adding the graph scene and its view:
         self._graph_scene = GraphScene(self)
         self._view = QGraphicsView(self)
         self._view.setScene(self._graph_scene)
         self.setCentralWidget(self._view)
-
-        self._view.setFixedSize(1000, 750)
-        self._view.setSceneRect(0, 0, 900, 650)
-        #self._view.fitInView(0, 0, 900, 650, Qt.KeepAspectRatio)
 
         # Adding a toolbar with buttons:
         toolbar = QToolBar("Toolbar")
@@ -103,8 +100,6 @@ class GraphScene(QGraphicsScene):
         for item in self._items:
             self.addItem(item)
 
-        # TODO: update scene's size, etc
-
 
     def reconnect_and_refresh(self):
         """ Raises a ConnectionError if the kernel is not running. """
@@ -113,7 +108,9 @@ class GraphScene(QGraphicsScene):
 
 
     def add_rect(self):
+        print(self.sceneRect())
         self.addItem(QGraphicsRectItem(0, 0, 1000, 1000))
+        print(self.sceneRect())
 
 
     def change_color(self):

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 from json import loads
 
@@ -80,7 +80,7 @@ class JsonToQtGenerator:
             j.T_ELLIPSE[1]: self._generate_ellipse,
             j.T_SPLINE[0]: self._generate_spline,
             j.T_SPLINE[1]: self._generate_spline,
-            # j.T_POLYGON[0]: self._generate_rectangle,
+            # j.T_POLYLINE[0]: self._generate_rectangle,
         }
 
         self._graph_data: Dict[str, Any] = loads(json_string)
