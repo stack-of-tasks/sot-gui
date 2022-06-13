@@ -380,9 +380,14 @@ class Graph:
         """ Adds all of the graph's entity nodes, with their ports, to the given
             dot data generator.
         """
+        # Online tool to generate html tables based on the desired layout:
+        # https://www.tablesgenerator.com/html_tables
 
-        # From now on, every added node will be rectangle:
+        # From now on, every added node will have no shape (the html label will
+        # make the shape):
+        #dot_generator.set_node_attributes({'shape': 'none'})
         dot_generator.set_node_attributes({'shape': 'box'})
+        #dot_generator.set_node_attributes({'style': 'invis'})
 
         for entity in self._dg_entities:
             dot_generator.add_node(entity.name(), {'label': quoted(entity.name())})
@@ -419,10 +424,10 @@ class Graph:
             list of qt items and stores it as their `_qt_items` attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
-        #print(encoded_dot_code.decode('utf-8'))
+
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE, stderr=PIPE)\
             .communicate(encoded_dot_code)
-        #print(out.decode('utf-8'))
+        #print(out.decode())
 
         qt_generator = JsonToQtGenerator(out.decode('utf-8'))
         # For every node, we get its qt items:

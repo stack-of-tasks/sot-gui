@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 from json import loads
 
@@ -8,7 +8,7 @@ from PySide2.QtGui import QPolygonF, QPainterPath, QBrush, QColor
 from PySide2.QtCore import QRectF, QPointF
 
 from sot_gui.utils import (get_dict_with_element, get_dicts_with_element,
-    get_dict_with_element_in_list)
+    get_dict_with_element_in_list, get_dicts_with_element_in_list)
 
 
 # Documentation on dot's json output:
@@ -16,6 +16,8 @@ from sot_gui.utils import (get_dict_with_element, get_dicts_with_element,
 
 
 class JsonParsingUtils:
+    """ This is a helper class for parsing the dot's json output. """
+
     # Keys for lists of clusters, nodes and edges:
     OBJECTS = 'objects' # nodes and clusters
     EDGES = 'edges'
@@ -60,6 +62,31 @@ class JsonParsingUtils:
     T_SPLINE = ['b', 'B']
     T_POLYLINE = ['L']
 
+
+    def get_data_by_key_value(dict_list: List[Dict], key: str, values: Union[Any, List[Any]]) \
+            -> Dict:
+        """ From the dictionary list, returns the first one whose key/value pair corresponds
+            to the given arguments, or None if none was found. `values` can be a single element
+            or a list of possible values.
+        """
+        if isinstance(values, list):
+            return get_dict_with_element_in_list(dict_list, key, values)
+        else:
+            return get_dict_with_element(dict_list, key, values)
+
+
+    def get_data_list_by_key_value(dict_list: List[Dict], key: str, values:
+            Union[Any, List[Any]]) -> List[Dict]:
+        """ From the dictionary list, returns those whose key/value pairs correspond
+            to the given arguments, or None if none was found. `values` can be a single
+            element or a list of possible values.
+        """
+        if isinstance(values, list):
+            return get_dicts_with_element_in_list(dict_list, key, values)
+        else:
+            return get_dicts_with_element(dict_list, key, values)
+
+
 j = JsonParsingUtils
 
 
@@ -101,15 +128,15 @@ class JsonToQtGenerator:
 
     def get_qt_item_for_node(self, node_name: str) -> QGraphicsItem:
         # Getting the node whose name is `node_name`:
-        node = get_dict_with_element(self._graph_data[j.OBJECTS], j.NAME, node_name)
+        node = j.get_data_by_key_value(self._graph_data[j.OBJECTS], j.NAME, node_name)
         if node is None:
             raise ValueError(f"Node {node_name} could not be found in dot's json output.")
         
         if node.get(j.STYLE) == 'invis': # If the node is invisible
             return None
 
-        # Creating the node's body (node = body + label):
-        qt_item_body = self._get_node_body(node[j.BODY_DRAW])
+        # Creating the node's body (node = body + label ; body = shape or html table):
+        qt_item_body = self._get_node_body(node[j.BODY_DRAW], node[j.LABEL_DRAW])
 
         # Creating the node's label, with the node's shape as parent:
         label = self._get_label(node[j.LABEL_DRAW])
@@ -143,27 +170,31 @@ class JsonToQtGenerator:
         return curve
 
 
-    def _get_node_body(self, body_data: List[Dict]) -> QGraphicsItem:
+    def _get_node_body(self, body_data: List[Dict], label_data: List[Dict]) -> QGraphicsItem:
         # Getting the body's shape:
-        shape_data = get_dict_with_element_in_list(body_data, j.TYPE,
-                j.T_POLYGON + j.T_ELLIPSE)
+        shape_data = j.get_data_by_key_value(body_data, j.TYPE, j.T_POLYGON + j.T_ELLIPSE)
         shape_type = shape_data[j.TYPE]
         qt_item_body = self._qt_generator_per_type[shape_type](shape_data)
+
+        # Creating the entity node's html table, if any:
+        table_data = j.get_data_list_by_key_value(label_data, j.TYPE, 'p')
+        for pol_data in table_data:
+            pol = self._generate_polygon(pol_data)
+            pol.setParentItem(qt_item_body)
+        
         return qt_item_body
 
 
     def _get_edge_body(self, edge_data: Dict[str, Any]) -> QGraphicsItem:
         # Getting the spline:
-        spline_data = get_dict_with_element_in_list(edge_data.get(j.BODY_DRAW),
-                j.TYPE, j.T_SPLINE)
+        spline_data = j.get_data_by_key_value(edge_data.get(j.BODY_DRAW), j.TYPE, j.T_SPLINE)
         if spline_data is None or spline_data.get(j.POINTS) is None:
             return None
         curve = self._generate_spline(spline_data.get(j.POINTS))
         # TODO: add an additional path to QPainterPath if there are several bezier curves
 
         # Getting the head and setting the curve as its parent:
-        head_data = get_dict_with_element_in_list(edge_data.get(j.HEAD_DRAW),
-                j.TYPE, j.T_POLYGON)
+        head_data = j.get_data_by_key_value(edge_data.get(j.HEAD_DRAW), j.TYPE, j.T_POLYGON)
         if head_data is not None and head_data.get(j.POINTS) is not None:
             head = self._generate_polygon(head_data)
             head.setBrush(QBrush(QColor("black"))) # Filling it with black
@@ -174,11 +205,11 @@ class JsonToQtGenerator:
 
     def _get_label(self, label_data: List[Dict]) -> QGraphicsItem:
         # Getting the text:
-        text_data = get_dict_with_element_in_list(label_data, j.TYPE, j.T_TEXT)
+        text_data = j.get_data_by_key_value(label_data, j.TYPE, j.T_TEXT)
         qt_item_label = self._generate_text(text_data)
 
         # Getting the font info:
-        font_data = get_dict_with_element_in_list(label_data, j.TYPE, j.T_FONT)
+        font_data = j.get_data_by_key_value(label_data, j.TYPE, j.T_FONT)
 
         # Setting its position:
         dot_coords = (text_data[j.TEXT_POS][0], text_data[j.TEXT_POS][1])
@@ -268,7 +299,7 @@ class JsonToQtGenerator:
 
 
     def _get_node_id_per_name(self, name: str) -> int:
-        node = get_dict_with_element(self._graph_data[j.OBJECTS], j.NAME, name)
+        node = j.get_data_by_key_value(self._graph_data[j.OBJECTS], j.NAME, name)
         return node.get(j.ID)
 
 
@@ -279,8 +310,8 @@ class JsonToQtGenerator:
 
         # Getting the edges whose heads are `head_name`:
         all_edges = self._graph_data[j.EDGES]
-        edges_with_correct_head = get_dicts_with_element(all_edges, j.HEAD_ID, head_id)
+        edges_with_correct_head = j.get_data_list_by_key_value(all_edges, j.HEAD_ID, head_id)
 
         # Among these edges, finding the one whose tail is `tail_name`:
-        edge = get_dict_with_element(edges_with_correct_head, j.TAIL_ID, tail_id)
+        edge = j.get_data_by_key_value(edges_with_correct_head, j.TAIL_ID, tail_id)
         return edge

@@ -1,6 +1,16 @@
 from typing import Dict, Any
 
 
+"""
+    Graphviz documentation:
+    https://graphviz.org/documentation/
+    https://www.graphviz.org/pdf/dotguide.pdf
+
+    Interactive tool to test dot code's output (xdot, json, svg...):
+    https://dreampuf.github.io/GraphvizOnline/
+"""
+
+
 class DotDataGenerator:
     """ This class allows to generate dot code through a simple API. """
 

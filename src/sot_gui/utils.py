@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, List, Any
+from typing import Dict, List, Any
 
 
 def quoted(string: str) -> str:
