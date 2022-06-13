@@ -91,7 +91,9 @@ j = JsonParsingUtils
 
 
 class JsonToQtGenerator:
-    """ """
+    """ When given dot's json output as a string, this class can generate qt items
+        for nodes, ports and edges.
+    """
 
     def __init__(self, json_string: str):
         self._qt_generator_per_type = {
@@ -127,6 +129,14 @@ class JsonToQtGenerator:
     #
 
     def get_qt_item_for_node(self, node_name: str) -> QGraphicsItem:
+        """ Generates and returns a qt item for the node named `node_name` in the dot
+            code used to generate the json output.
+            The qt item will be the node's body (i.e shape OR html table) as the parent
+            QGraphicsItem, which will contain the node label as a child item (only if the
+            body is a shape).
+            All those items' positions will be set before return.
+            If the node's style was set to invisible, this method will return None.
+        """
         # Getting the node whose name is `node_name`:
         node = j.get_data_by_key_value(self._graph_data[j.OBJECTS], j.NAME, node_name)
         if node is None:
@@ -135,17 +145,35 @@ class JsonToQtGenerator:
         if node.get(j.STYLE) == 'invis': # If the node is invisible
             return None
 
-        # Creating the node's body (node = body + label ; body = shape or html table):
-        qt_item_body = self._get_node_body(node[j.BODY_DRAW], node[j.LABEL_DRAW])
+        # Creating the node's body (node = (shape + label) OR html table):
+        qt_item_body = None
 
-        # Creating the node's label, with the node's shape as parent:
-        label = self._get_label(node[j.LABEL_DRAW])
-        label.setParentItem(qt_item_body)
+        # If the node has a shape, we add the label as its child:
+        if j.BODY_DRAW in node:
+            qt_item_shape = self._get_node_shape(node[j.BODY_DRAW])
+            qt_item_body = qt_item_shape
+            # Adding the node's label:
+            label = self._get_label(node[j.LABEL_DRAW])
+            label.setParentItem(qt_item_body)
+
+        else:
+            # If the node has no shape, its body is an html table.
+            # No label has to be added, as the table is technically the label.
+            qt_item_html_table = self._get_node_html_table(node[j.LABEL_DRAW])
+            qt_item_body = qt_item_html_table
+
 
         return qt_item_body
 
 
     def get_qt_item_for_edge(self, head_name: str, tail_name: str) -> QGraphicsItem:
+        """ Generates and returns a qt item for the edge linked to the nodes named
+            `head_name` and `tail_name` in the dot code used to generate the json output.
+            The qt item will be the edge's body (i.e the spline) as the parent
+            QGraphicsItem, which will contain the labels as a child items.
+            All those items' positions will be set before return.
+            If the edge's style was set to invisible, this method will return None.
+        """
         # Getting the edge's display info:
         edge_data = self._get_edge_per_nodes_names(head_name, tail_name)
         if edge_data is None:
@@ -160,7 +188,7 @@ class JsonToQtGenerator:
         if curve is None:
             return None
 
-        # Getting the labels:
+        # Getting the labels (label, headlabel, taillabel):
         for label_type in [j.LABEL_DRAW, j.HEAD_LABEL_DRAW, j.TAIL_LABEL_DRAW]:
             label_data = edge_data.get(label_type)
             if label_data is not None:
@@ -170,22 +198,113 @@ class JsonToQtGenerator:
         return curve
 
 
-    def _get_node_body(self, body_data: List[Dict], label_data: List[Dict]) -> QGraphicsItem:
-        # Getting the body's shape:
-        shape_data = j.get_data_by_key_value(body_data, j.TYPE, j.T_POLYGON + j.T_ELLIPSE)
-        shape_type = shape_data[j.TYPE]
-        qt_item_body = self._qt_generator_per_type[shape_type](shape_data)
+    def _get_node_shape(self, body_data: List[Dict]) -> QGraphicsItem:
+        """ Generates and returns a qt item for a node's shape, with its position set.
+            Returns None if the node has no shape.
+        """
+        # If the node has no shape:
+        if body_data is None:
+            return None
 
-        # Creating the entity node's html table, if any:
-        table_data = j.get_data_list_by_key_value(label_data, j.TYPE, 'p')
-        for pol_data in table_data:
-            pol = self._generate_polygon(pol_data)
-            pol.setParentItem(qt_item_body)
-        
+        # Getting the body's shape type and data (polygon or ellipse):
+        shape_data = j.get_data_by_key_value(body_data, j.TYPE, j.T_POLYGON + j.T_ELLIPSE)
+        if shape_data is None:
+            return None
+        shape_type = shape_data[j.TYPE]
+
+        # Generating the shape:
+        qt_item_body = self._qt_generator_per_type[shape_type](shape_data)
         return qt_item_body
 
 
+    def _get_node_html_table(self, table_data: List[Dict]) -> QGraphicsItem:
+        """ Generates and returns a qt item for a node's html table. The qt item consists
+            of the table's outline as the parent item, containing every cell's outline which
+            contain the cell's label. The position of each item is set in this method.
+            Raises a RuntimeError if the table could not be generated due to missing data.
+        """
+
+        # Getting the polygons and labels data lists:
+        display_data = self._get_html_table_data_lists(table_data)
+
+        if len(display_data) == 0:
+            raise RuntimeError('JsonToQtGenerator._get_node_html_table: not enough' +
+            " elements in node's label json data.")
+
+        # Creating each cell. The middle column will be the parent (qt_item_node),
+        # as it represents the node's body, and the side columns are the ports:
+        qt_item_node = None
+        for idx, (cell_outline_data, cell_label_data) in enumerate(display_data):
+            cell_qt_item = self._get_html_table_cell(cell_outline_data, cell_label_data)
+            if idx == 1:
+                # During the dot code generation, the middle cell is always created 2nd
+                qt_item_node = cell_qt_item
+            else:
+                # If it's a port's qt item
+                cell_qt_item.setParentItem(qt_item_node)
+        
+        # TODO: make the node's middle the parent item, and the ports the children
+
+        return qt_item_node
+
+
+    def _get_html_table_cell(self, outline_data: List[Dict], label_data: List[Dict]) \
+            -> QGraphicsItem:
+        """ Generates and returns qt items for a node's html table's cell,
+            with their positions set. The outline will be the parent item, containing
+            the label.
+        """
+
+        # Generating the outline:
+        polygon_data = j.get_data_by_key_value(outline_data, j.TYPE, j.T_POLYGON)
+        cell_outline = self._generate_polygon(polygon_data)
+
+        # Generating the label:
+        cell_label = self._get_label(label_data)
+        cell_label.setParentItem(cell_outline)
+
+        return cell_outline
+        
+
+    def _get_html_table_data_lists(self, table_data: List[Dict]) -> List[Tuple[List[Dict]]]:
+        """ Goes through a list of dictionaries corresponding to a node's html table
+            display data (table outline, cells' outlines and cells' labels), and returns
+            a list of every cell's display data.
+            The display data for a cell is a tuple. Its first element is a list of the
+            outline's data dictionaries, and its second element is a list of the label's
+            data dictionaries.
+        """
+        table_data_list = []
+
+        # For each cell, we get its outline's data and its label's data:
+        cell_outline = []
+        cell_label = []
+        current_data_is_outline = True # Each cell data sequence is: outline, then label
+        for data in table_data:
+            if current_data_is_outline:
+                cell_outline.append(data)
+                # A label's data sequence ends with its text:
+                if data[j.TYPE] in j.T_POLYGON:
+                    current_data_is_outline = False
+
+            else:
+                cell_label.append(data)
+                # An outline's data sequence ends with the coords of its vertices:
+                if data[j.TYPE] in j.T_TEXT:
+                    current_data_is_outline = True
+                    table_data_list.append((cell_outline, cell_label))
+                    cell_outline = []
+                    cell_label = []
+
+        return table_data_list
+
+
     def _get_edge_body(self, edge_data: Dict[str, Any]) -> QGraphicsItem:
+        """ Generates and returns qt items for an edge's body based on the given data,
+            with their positions set.
+            The body consists of the edge's spline, and its head.
+        """
+
         # Getting the spline:
         spline_data = j.get_data_by_key_value(edge_data.get(j.BODY_DRAW), j.TYPE, j.T_SPLINE)
         if spline_data is None or spline_data.get(j.POINTS) is None:
@@ -204,6 +323,10 @@ class JsonToQtGenerator:
 
 
     def _get_label(self, label_data: List[Dict]) -> QGraphicsItem:
+        """ Generates and returns qt items for a label based on the given data,
+            with their positions set.
+        """
+
         # Getting the text:
         text_data = j.get_data_by_key_value(label_data, j.TYPE, j.T_TEXT)
         qt_item_label = self._generate_text(text_data)

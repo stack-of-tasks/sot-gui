@@ -379,12 +379,29 @@ class Graph:
 
         # From now on, every added node will have no shape (the html label will
         # make the shape):
-        #dot_generator.set_node_attributes({'shape': 'none'})
-        dot_generator.set_node_attributes({'shape': 'box'})
-        #dot_generator.set_node_attributes({'style': 'invis'})
+        dot_generator.set_node_attributes({'shape': 'none'})
+        #dot_generator.set_node_attributes({'shape': 'box'})
+
+        label = '<\n\
+                <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">\n\
+                    <TR>\n\
+                        <TD PORT="sin0">sin0</TD>\n\
+                        <TD ROWSPAN="3" ><FONT >Add_of_double(add1)</FONT></TD>\n\
+                        <TD ROWSPAN="2" PORT="sout0">sout0</TD>\n\
+                    </TR>\n\
+                    <TR>\n\
+                        <TD PORT="sin1">sin1</TD>\n\
+                    </TR>\n\
+                    <TR>\n\
+                        <TD PORT="sin2">sin2</TD>\n\
+                        <TD PORT="sout1">sout1</TD>\n\
+                    </TR>\n\
+                </TABLE>\n\
+            >'
 
         for entity in self._dg_entities:
-            dot_generator.add_node(entity.name(), {'label': quoted(entity.name())})
+            dot_generator.add_node(entity.name(), {'label': label})
+            #dot_generator.add_node(entity.name(), {'label': quoted(entity.name())})
 
 
     def _add_edges_to_dot_code(self, dot_generator: DotDataGenerator):
