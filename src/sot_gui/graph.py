@@ -18,7 +18,7 @@ class Node:
         self._type: str = None
         self._inputs: List[self.Port] = None
         self._outputs: List[self.Port] = None
-        self._qt_items: List[QGraphicsItem] = None
+        self._qt_item: QGraphicsItem = None
 
 
     def name(self) -> str:
@@ -31,12 +31,10 @@ class Node:
         self._type = type
 
 
-    def qt_items(self) -> List[QGraphicsItem]:
-        if self._qt_items is not None:
-            return self._qt_items.copy()
-        return []
-    def set_qt_items(self, qt_items: List[QGraphicsItem]) -> None:
-        self._qt_items = qt_items
+    def qt_item(self) -> QGraphicsItem:
+        return self._qt_item
+    def set_qt_item(self, qt_item: QGraphicsItem) -> None:
+        self._qt_item = qt_item
 
 
     def inputs(self) -> List[Port]:
@@ -78,7 +76,7 @@ class Node:
     
     class Port:
         def __init__(self, name: str, type: str, node: Node):
-            self._qt_items: List[QGraphicsItem] = []
+            self._qt_item: QGraphicsItem = None
             self._edge = None
             self._name = name
             self._type = type # 'input' or 'output'
@@ -93,12 +91,10 @@ class Node:
             return self._type
 
 
-        def qt_items(self) -> List[QGraphicsItem]:
-            if self._qt_items is not None:
-                return self._qt_items.copy()
-            return []
-        def set_qt_items(self, qt_items: List[QGraphicsItem]) -> None:
-            self._qt_items = qt_items
+        def qt_item(self) -> QGraphicsItem:
+            return self._qt_item
+        def set_qt_item(self, qt_item: QGraphicsItem) -> None:
+            self._qt_item = qt_item
 
 
         def node(self) -> str:
@@ -122,7 +118,7 @@ class InputNode(Node):
 
     def __init__(self, output_edge: Edge):
         # TODO: generate name with name of child node + corresponding plug?
-        self._qt_items = []
+        self._qt_item = None
         self._type = output_edge.value_type()
 
         self._name = f"InputNode{InputNode._input_node_count}"
@@ -139,13 +135,13 @@ class EntityNode(Node):
         self._type = type
         self._inputs = []
         self._outputs = []
-        self._qt_items = []
+        self._qt_item = None
 
 
 class Edge:
     def __init__(self, value: Any = None, value_type: str = None,
                 head: Node.Port = None, tail: Node.Port = None):
-        self._qt_items: List[QGraphicsItem] = []
+        self._qt_item: QGraphicsItem = None
         self._value = value
         self._value_type = value_type
         self._head = head
@@ -166,12 +162,10 @@ class Edge:
         self._value_type = value_type
 
 
-    def qt_items(self) -> List[QGraphicsItem]:
-        if self._qt_items is not None:
-            return self._qt_items.copy()
-        return []
-    def set_qt_items(self, qt_items: List[QGraphicsItem]) -> None:
-        self._qt_items = qt_items
+    def qt_item(self) -> QGraphicsItem:
+        return self._qt_item
+    def set_qt_item(self, qt_item: QGraphicsItem) -> None:
+        self._qt_item = qt_item
 
 
     def head(self) -> Node.Port:
@@ -421,7 +415,7 @@ class Graph:
 
     def _generate_qt_items(self) -> None:
         """ For each Node, Port and Edge, this function generates the corresponding
-            list of qt items and stores it as their `_qt_items` attribute.
+            list of qt items and stores it as their `_qt_item` attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
 
@@ -433,7 +427,7 @@ class Graph:
         # For every node, we get its qt items:
         for node in self._input_nodes + self._dg_entities:
             qt_item_node = qt_generator.get_qt_item_for_node(node.name())
-            node.set_qt_items([qt_item_node]) # TODO: make it a single item?
+            node.set_qt_item(qt_item_node)
 
             if isinstance(node, InputNode):
                 continue
@@ -446,7 +440,7 @@ class Graph:
                 tail_name = edge.tail().node().name()
                 
                 qt_item_edge = qt_generator.get_qt_item_for_edge(head_name, tail_name)
-                edge.set_qt_items([qt_item_edge])
+                edge.set_qt_item(qt_item_edge)
 
 
     def get_qt_items(self) -> List[QGraphicsItem]:
@@ -455,19 +449,23 @@ class Graph:
         self._generate_qt_items()
         qt_items = []
 
+        def add_qt_item(qt_item: QGraphicsItem) -> None:
+            if qt_item is not None:
+                qt_items.append(qt_item)
+
         # For each node, we add the qt items of the node, of its ports, and of the
         # port's edge if it's an input (so that edges are not handled twice)
         nodes = self._dg_entities + self._input_nodes
         for node in nodes:
-            qt_items += node.qt_items()
+            add_qt_item(node.qt_item())
 
             ports = node.outputs()
             if isinstance(node, EntityNode):
                 ports += node.inputs()
 
             for port in ports:
-                qt_items += port.qt_items()
+                add_qt_item(port.qt_item())
                 if port.type() == 'input' and port.edge() is not None:
-                    qt_items += port.edge().qt_items()
+                    add_qt_item(port.edge().qt_item())
 
         return qt_items
