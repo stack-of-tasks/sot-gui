@@ -94,8 +94,14 @@ class GraphScene(QGraphicsScene):
         self._graph = Graph(self._dg_communication)
 
         # Launching a thread to update the status of the connection to the kernel:
+        def connection_status_updating() -> None:
+            while 1:
+                self._connected_to_kernel = self._dg_communication.is_kernel_alive()
+                self.change_color('green' if self._connected_to_kernel else 'red')
+                sleep(0.1)
+            
         self._kernel_heartbeat_thread = threading.Thread(
-            target=self._connection_status_updating)
+            target=connection_status_updating)
         self._kernel_heartbeat_thread.setDaemon(True)
         self._kernel_heartbeat_thread.start()
 
@@ -114,13 +120,6 @@ class GraphScene(QGraphicsScene):
         """ Raises a ConnectionError if the kernel is not running. """
         self._dg_communication.connect_to_kernel()
         self.refresh()
-
-
-    def _connection_status_updating(self) -> None:
-        while 1:
-            self._connected_to_kernel = self._dg_communication.is_kernel_alive()
-            self.change_color('green' if self._connected_to_kernel else 'red')
-            sleep(0.1)
 
 
     def add_rect(self):
