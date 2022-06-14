@@ -227,23 +227,24 @@ class JsonToQtGenerator:
         # Getting the polygons and labels data lists:
         display_data = self._get_html_table_data_lists(table_data)
 
-        if len(display_data) == 0:
+        if len(display_data) < 3:
             raise RuntimeError('JsonToQtGenerator._get_node_html_table: not enough' +
             " elements in node's label json data.")
 
         # Creating each cell. The middle column will be the parent (qt_item_node),
         # as it represents the node's body, and the side columns are the ports:
         qt_item_node = None
+
+        # Creating the parent first so that we can add the other cells as its children.
+        # During the dot code generation, the middle cell is always created 2nd
+        mid_outline_data, mid_label_data = display_data[1]
+        qt_item_node = self._get_html_table_cell(mid_outline_data, mid_label_data)
+
         for idx, (cell_outline_data, cell_label_data) in enumerate(display_data):
-            cell_qt_item = self._get_html_table_cell(cell_outline_data, cell_label_data)
-            if idx == 1:
-                # During the dot code generation, the middle cell is always created 2nd
-                qt_item_node = cell_qt_item
-            else:
-                # If it's a port's qt item
+            if idx != 1:
+                # If it's not the midlle column
+                cell_qt_item = self._get_html_table_cell(cell_outline_data, cell_label_data)
                 cell_qt_item.setParentItem(qt_item_node)
-        
-        # TODO: make the node's middle the parent item, and the ports the children
 
         return qt_item_node
 
@@ -260,7 +261,7 @@ class JsonToQtGenerator:
         cell_outline = self._generate_polygon(polygon_data)
 
         # Generating the label:
-        cell_label = self._get_label(label_data)
+        cell_label = self._get_label(label_data, False)
         cell_label.setParentItem(cell_outline)
 
         return cell_outline
@@ -322,9 +323,13 @@ class JsonToQtGenerator:
         return curve
 
 
-    def _get_label(self, label_data: List[Dict]) -> QGraphicsItem:
+    def _get_label(self, label_data: List[Dict], compensate_width: bool = True) \
+        -> QGraphicsItem:
         """ Generates and returns qt items for a label based on the given data,
             with their positions set.
+            If `compensate_width` is True, the position of the label will be shifted
+            to compensate for its width. It should always be necessary, except for a
+            label in an html table.
         """
 
         # Getting the text:
@@ -338,7 +343,7 @@ class JsonToQtGenerator:
         dot_coords = (text_data[j.TEXT_POS][0], text_data[j.TEXT_POS][1])
         qt_coords = self._dot_coords_to_qt_coords(dot_coords)
         position = QPointF(
-            qt_coords[0] - text_data[j.WIDTH] / 2,
+            qt_coords[0] - ( (text_data[j.WIDTH] / 2) if compensate_width else 0 ),
             qt_coords[1] - font_data[j.FONT_SIZE]
         )
         qt_item_label.setPos(position)
