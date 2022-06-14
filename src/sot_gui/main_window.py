@@ -1,3 +1,6 @@
+import threading
+from time import sleep
+
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView, QToolBar,
     QAction, QGraphicsRectItem, QGraphicsPolygonItem, QMessageBox)
 from PySide2.QtGui import QColor
@@ -49,14 +52,14 @@ class MainWindow(QMainWindow):
     # BUTTONS CALLBACKS
     #
 
-    def refresh_graph(self):
+    def refresh_graph(self) -> None:
         try:
             self._graph_scene.refresh()
         except ConnectionError:
             self.message_box_reconnect_and_refresh()
 
 
-    def reconnect_and_refresh_graph(self):
+    def reconnect_and_refresh_graph(self) -> None:
         try:
             self._graph_scene.reconnect_and_refresh()
         except ConnectionError:
@@ -67,7 +70,7 @@ class MainWindow(QMainWindow):
     # MESSAGE BOXES
     #
 
-    def message_box_reconnect_and_refresh(self):
+    def message_box_reconnect_and_refresh(self) -> None:
         message_box = QMessageBox(self.parent())
         message_box.setWindowTitle("No connection")
 
@@ -86,12 +89,18 @@ class GraphScene(QGraphicsScene):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self._connected_to_kernel = False
         self._dg_communication = DynamicGraphCommunication()
-        #self.setSceneRect(0, 0, 1000, 750)
         self._graph = Graph(self._dg_communication)
 
+        # Launching a thread to update the status of the connection to the kernel:
+        self._kernel_heartbeat_thread = threading.Thread(
+            target=self._connection_status_updating)
+        self._kernel_heartbeat_thread.setDaemon(True)
+        self._kernel_heartbeat_thread.start()
 
-    def refresh(self):
+
+    def refresh(self) -> None:
         """ Raises a ConnectionError if the kernel is not running. """
             
         self._graph.refresh_graph()
@@ -101,10 +110,17 @@ class GraphScene(QGraphicsScene):
             self.addItem(item)
 
 
-    def reconnect_and_refresh(self):
+    def reconnect_and_refresh(self) -> None:
         """ Raises a ConnectionError if the kernel is not running. """
         self._dg_communication.connect_to_kernel()
         self.refresh()
+
+
+    def _connection_status_updating(self) -> None:
+        while 1:
+            self._connected_to_kernel = self._dg_communication.is_kernel_alive()
+            self.change_color('green' if self._connected_to_kernel else 'red')
+            sleep(0.1)
 
 
     def add_rect(self):
@@ -113,13 +129,18 @@ class GraphScene(QGraphicsScene):
         print(self.sceneRect())
 
 
-    def change_color(self):
+    def change_color(self, color: str):
         items = self.items()
         for item in items:
             if isinstance(item, QGraphicsPolygonItem):
-                item.setBrush(QColor("red"))
+                item.setBrush(QColor(color))
 
 
     def print_nb_items(self):
         items = self.items()
-        print(len(items))  
+        print(len(items))
+
+
+    def __del__(self):
+        self._kernel_heartbeat_thread.join()
+        del self._kernel_heartbeat_thread

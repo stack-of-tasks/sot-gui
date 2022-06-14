@@ -43,6 +43,14 @@ class DynamicGraphCommunication():
             return response.result
 
 
+    def is_kernel_alive(self) -> bool:
+        return self._client.is_kernel_alive()
+
+
+    #
+    # API
+    #
+
     def get_all_entities_names(self) -> List[str]:
         """ Returns a list of the names of the dynamic graph's entities. """
         return self.run("dg.entity.Entity.entities.keys()")
