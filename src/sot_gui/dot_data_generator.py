@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from typing import Dict, Tuple, List, Any
+from sot_gui.utils import quoted
 
 
 """
@@ -47,6 +48,49 @@ class DotDataGenerator:
         new_line += "\n"
 
         self._graph_content_str += new_line
+
+
+    def add_html_node(self, name: str, ports: Tuple[List[Tuple[str]]],
+        label: str = None) -> None:
+        """ Adds an html-style node to the graph.
+
+            Args:
+              name: name of the node
+              ports: inputs and outputs of the node, as a tuple (inputs, outputs).
+                Each element of this tuple is a list of tuples containing the port's
+                data: (name, label).
+              label: label of the node. If None, the name of the node will be used.
+
+            Raises:
+                RuntimeError: there are no inputs or outputs.
+        """
+
+        (inputs, outputs) = ports
+        if inputs == [] or outputs == []:
+            raise RuntimeError('')
+
+        if label is None:
+            label = quoted(name)
+
+        # Online tool to generate html tables based on the desired layout:
+        # https://www.tablesgenerator.com/html_tables
+        html = '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">\n'
+
+        nb_rows = max(len(inputs), len(outputs))
+
+        # For each row, we add its elements from left to right:
+        for i in range(nb_rows):
+            html += '\t\t<TR>\n'
+
+            # Adding the node's label:
+            if i == 0:
+                html += f'\t\t\t<TD ROWSPAN="{nb_rows}">{label}</TD>\n'
+
+            html += '\t\t</TR>\n'
+
+        html += '</TABLE>>'
+
+        self._graph_content_str += f'\t{name} [label={html}]\n'
 
     
     def add_edge(self, tail: str, head: str, attributes: Dict[str, Any] = None) -> None:
