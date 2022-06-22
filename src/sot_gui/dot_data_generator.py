@@ -104,6 +104,8 @@ class DotDataGenerator:
             max_nb = 'outputs'
         nb_rows = max(inputs_nb, outputs_nb)
 
+        input_count, output_count = 0, 0
+
         # For each row, we add its elements from left to right.
         # Online tool to generate html tables based on the desired layout:
         # https://www.tablesgenerator.com/html_tables
@@ -111,7 +113,7 @@ class DotDataGenerator:
         for i in range(nb_rows):
             input, output = None, None
             rowspan_input, rowspan_output = 1, 1
-            remaining_nb_rows = nb_rows - i - 1
+            remaining_nb_rows = nb_rows - i
 
             # If there are more inputs, each input cell will have a rowspan of 1,
             # the middle column (node's label) will have a rowspan of `inputs_nb`,
@@ -119,26 +121,32 @@ class DotDataGenerator:
             # except the last one which will span over the remaining available rows.
             if max_nb == 'inputs':
                 input = inputs[i]
-                if i % inputs_nb == 0:
-                    output = outputs[i // inputs_nb]
-                    rowspan_output = inputs_nb // outputs_nb
-                    if remaining_nb_rows < rowspan_output * 2: # If it's the last output
-                        rowspan_output += remaining_nb_rows
+                rowspan_output = inputs_nb // outputs_nb
+                if output_count < outputs_nb and  i == output_count * rowspan_output:
+                    output = outputs[output_count]
+                    if output_count == outputs_nb - 1: # If it's the last output
+                        rowspan_output = remaining_nb_rows
+                    output_count += 1
+                input_count += 1
             
             # The same logic applies if there are more outputs:
             elif max_nb == 'outputs':
                 output = outputs[i]
-                if i % outputs_nb == 0:
-                    input = inputs[i // outputs_nb]
-                    rowspan_input = outputs_nb // inputs_nb
-                    if remaining_nb_rows < rowspan_input * 2: # If it's the last input
-                        rowspan_input += remaining_nb_rows
+                rowspan_input = outputs_nb // inputs_nb
+                if input_count < inputs_nb and i == input_count * rowspan_input:
+                    input = inputs[input_count]
+                    if input_count == inputs_nb - 1: # If it's the last input
+                        rowspan_input = remaining_nb_rows
+                    input_count += 1
+                output_count += 1
 
             # If `inputs_nb` and `outputs_nb` are equal, we add one input and one
             # output on each row, so both with a rowspan of 1:
             else:
                 input = inputs[i]
                 output = outputs[i]
+                input_count += 1
+                output_count += 1
 
             # Creating the html code for the row:
             input_cell = ''
