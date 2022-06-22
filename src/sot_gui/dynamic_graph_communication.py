@@ -17,15 +17,21 @@ class DynamicGraphCommunication():
         self.run("import dynamic_graph as dg", False)
 
 
-    def connect_to_kernel(self) -> None:
-        """ Launches a new client that will connect to the latest kernel. """
+    def connect_to_kernel(self) -> bool:
+        """ Launches a new client that will connect to the latest kernel.
+
+            Returns:
+              True if the connection was successful, False if not.
+        """
         
         self._client.connect_to_kernel()
         try:
             self._import_dynamic_graph()
+            return True
         except ConnectionError:
             print('DynamicGraphCommunication.connect_to_kernel: could not import' +
                 ' dynamic graph into kernel (no connection)')
+            return False
 
 
     def run(self, code: str, ret_value: bool = True) -> Any:

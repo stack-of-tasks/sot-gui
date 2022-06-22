@@ -2,8 +2,7 @@ import threading
 from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView, QToolBar,
-    QAction, QGraphicsRectItem, QGraphicsPolygonItem, QMessageBox, QLabel,
-    QStatusBar)
+    QAction, QGraphicsRectItem, QGraphicsPolygonItem, QMessageBox, QLabel)
 from PySide2.QtGui import QColor
 
 from sot_gui.graph import Graph
@@ -21,7 +20,23 @@ class MainWindow(QMainWindow):
         self._view.setScene(self._graph_scene)
         self.setCentralWidget(self._view)
 
-        # Adding a toolbar with buttons:
+        self._add_toolbar()
+        self._add_status_bar()
+
+        # Displaying the graph:
+        self.refresh_graph()
+
+
+    def __del__(self):
+        self._kernel_heartbeat_thread.join()
+        del self._kernel_heartbeat_thread
+
+
+    #
+    # ADDITIONAL WIDGETS
+    #
+
+    def _add_toolbar(self) -> None:
         toolbar = QToolBar("Toolbar")
         self.addToolBar(toolbar)
 
@@ -45,16 +60,18 @@ class MainWindow(QMainWindow):
         button_nb_items.triggered.connect(self._graph_scene.print_nb_items)
         toolbar.addAction(button_nb_items)
 
+
+    def _add_status_bar(self) -> None:
         # If the kernel is stopped and relaunched, its session has changed and sending
         # commands will result in a crash. To prevent this, we don't allow the user to
         # send commands until they triggered a reconnection:
-        self._reconnection_needed = not self._graph_scene.connection_status
+        self._reconnection_needed = not self._graph_scene.connection_status()
 
         # Adding a status bar displaying the connection status:
         self._co_status_indicator = QLabel("")
         self.statusBar().addPermanentWidget(self._co_status_indicator)
 
-        def connection_status_updating() -> None:
+        def _connection_status_updating() -> None:
             while 1:
                 if self._graph_scene.connection_status() is False:
                     self._reconnection_needed = True
@@ -64,23 +81,15 @@ class MainWindow(QMainWindow):
             
         # Launching a thread to update the status of the connection to the kernel:
         self._kernel_heartbeat_thread = threading.Thread(
-            target=connection_status_updating)
+            target=_connection_status_updating)
         self._kernel_heartbeat_thread.setDaemon(True)
         self._kernel_heartbeat_thread.start()
-
-        # Displaying the graph:
-        self.refresh_graph()
-
-
-    def __del__(self):
-        self._kernel_heartbeat_thread.join()
-        del self._kernel_heartbeat_thread
 
 
     def _update_co_status_indicator(self) -> None:
         if self._graph_scene.connection_status() is False:
             color = 'red'
-            text = 'No connection'
+            text = 'No kernel detected'
 
         elif self._reconnection_needed is True:
             color = 'orange'
@@ -93,33 +102,7 @@ class MainWindow(QMainWindow):
         self._co_status_indicator.setStyleSheet('QLabel {color: ' + color + '}')
 
 
-    #
-    # BUTTONS CALLBACKS
-    #
-
-    def refresh_graph(self) -> None:
-        if self._reconnection_needed:
-            self.message_box_no_connection(refresh=True)
-        else:
-            try:
-                self._graph_scene.refresh()
-            except ConnectionError:
-                self.message_box_no_connection(refresh=True)
-
-
-    def reconnect(self) -> None:
-        try:
-            self._graph_scene.reconnect()
-            self._reconnection_needed = False
-        except ConnectionError:
-            self.message_box_no_connection()
-
-
-    #
-    # MESSAGE BOXES
-    #
-
-    def message_box_no_connection(self, refresh: bool = False) -> None:
+    def _message_box_no_connection(self, refresh: bool = False) -> None:
         message_box = QMessageBox(self.parent())
         message_box.setWindowTitle("No connection")
 
@@ -135,6 +118,27 @@ class MainWindow(QMainWindow):
             if refresh:
                 self.refresh_graph()
         
+
+    #
+    # BUTTONS CALLBACKS
+    #
+
+    def refresh_graph(self) -> None:
+        if self._reconnection_needed:
+            self._message_box_no_connection(refresh=True)
+        else:
+            try:
+                self._graph_scene.refresh()
+            except ConnectionError:
+                self._message_box_no_connection(refresh=True)
+
+
+    def reconnect(self) -> None:
+        if self._graph_scene.reconnect():
+            self._reconnection_needed = False
+        else:
+            self._message_box_no_connection()
+
 
 class GraphScene(QGraphicsScene):
 
@@ -159,9 +163,8 @@ class GraphScene(QGraphicsScene):
             self.addItem(item)
 
 
-    def reconnect(self) -> None:
-        """ Raises a ConnectionError if the kernel is not running. """
-        self._dg_communication.connect_to_kernel()
+    def reconnect(self) -> bool:
+        return self._dg_communication.connect_to_kernel()
 
 
     def add_rect(self):
