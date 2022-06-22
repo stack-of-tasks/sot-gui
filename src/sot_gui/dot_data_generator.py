@@ -51,7 +51,7 @@ class DotDataGenerator:
 
 
     def add_html_node(self, name: str, ports: Tuple[List[Tuple[str]]],
-        label: str = None) -> None:
+            label: str = None) -> None:
         """ Adds an html-style node to the graph.
 
             Args:
@@ -70,34 +70,125 @@ class DotDataGenerator:
             raise RuntimeError('')
 
         if label is None:
-            label = quoted(name)
+            label = name
 
-        # Online tool to generate html tables based on the desired layout:
-        # https://www.tablesgenerator.com/html_tables
-        html = '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">\n'
-
-        nb_rows = max(len(inputs), len(outputs))
-
-        # For each row, we add its elements from left to right:
-        for i in range(nb_rows):
-            html += '\t\t<TR>\n'
-
-            # Adding the node's label:
-            if i == 0:
-                html += f'\t\t\t<TD ROWSPAN="{nb_rows}">{label}</TD>\n'
-
-            html += '\t\t</TR>\n'
-
-        html += '</TABLE>>'
+        table_content = self._get_html_rows_for_node(label, inputs, outputs)
+        html = f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">\n' +\
+                f'{table_content}\t</TABLE>>'
 
         self._graph_content_str += f'\t{name} [label={html}]\n'
 
-    
-    def add_edge(self, tail: str, head: str, attributes: Dict[str, Any] = None) -> None:
-        """ Adds an edge to the graph, with optional attributes. Its tail and
-            head can be nodes, or nodes' ports.
+
+    def _get_html_rows_for_node(self, label: str, inputs: List[Tuple[str]],
+            outputs: List[Tuple[str]]) -> str:
+        """ Generates html code for the rows of a node.
+
+            Args:
+              label: label of the node
+              inputs: input ports of the node, as a list of tuples (input_name,
+                input_label).
+              outputs: output ports of the node, as a list of tuples (output_name,
+                output_label).
+
+            Returns:
+                Html code for the rows of the node, as a string.
         """
-        new_line = f"\t{tail} -> {head}"
+
+        # We determine which column (inputs or outputs) has more rows:
+        inputs_nb = len(inputs)
+        outputs_nb = len(outputs)
+        max_nb = None
+        if inputs_nb > outputs_nb:
+            max_nb = 'inputs'
+        elif inputs_nb < outputs_nb:
+            max_nb = 'outputs'
+        nb_rows = max(inputs_nb, outputs_nb)
+
+        # For each row, we add its elements from left to right.
+        # Online tool to generate html tables based on the desired layout:
+        # https://www.tablesgenerator.com/html_tables
+        rows_html = ""
+        for i in range(nb_rows):
+            input, output = None, None
+            rowspan_input, rowspan_output = 1, 1
+            remaining_nb_rows = nb_rows - i - 1
+
+            # If there are more inputs, each input cell will have a rowspan of 1,
+            # the middle column (node's label) will have a rowspan of `inputs_nb`,
+            # and each output cell will span over `inputs_nb // outputs_nb` nb of lines,
+            # except the last one which will span over the remaining available rows.
+            if max_nb == 'inputs':
+                input = inputs[i]
+                if i % inputs_nb == 0:
+                    output = outputs[i // inputs_nb]
+                    rowspan_output = inputs_nb // outputs_nb
+                    if remaining_nb_rows < rowspan_output * 2: # If it's the last output
+                        rowspan_output += remaining_nb_rows
+            
+            # The same logic applies if there are more outputs:
+            elif max_nb == 'outputs':
+                output = outputs[i]
+                if i % outputs_nb == 0:
+                    input = inputs[i // outputs_nb]
+                    rowspan_input = outputs_nb // inputs_nb
+                    if remaining_nb_rows < rowspan_input * 2: # If it's the last input
+                        rowspan_input += remaining_nb_rows
+
+            # If `inputs_nb` and `outputs_nb` are equal, we add one input and one
+            # output on each row, so both with a rowspan of 1:
+            else:
+                input = inputs[i]
+                output = outputs[i]
+
+            # Creating the html code for the row:
+            input_cell = ''
+            if input is not None:
+                (in_name, in_label) = input
+                input_cell = f'\t\t\t<TD ROWSPAN="{rowspan_input}" PORT="{in_name}">' + \
+                    f'{in_label}</TD>\n'
+
+            # The node's label is added to the first row and spans over every row:
+            label_cell = ''
+            if i == 0:
+                label_cell = f'\t\t\t<TD ROWSPAN="{nb_rows}">{label}</TD>\n'
+
+            output_cell = ''
+            if output is not None:
+                (out_name, out_label) = output
+                output_cell = f'\t\t\t<TD ROWSPAN="{rowspan_output}" PORT="{out_name}">' + \
+                    f'{out_label}</TD>\n'
+
+            row_content = input_cell + label_cell + output_cell
+            rows_html += f'\t\t<TR>\n{row_content}\t\t</TR>\n'
+
+        return rows_html
+    
+
+    def add_edge(self, tail: Tuple[str, str], head: Tuple[str, str],
+            attributes: Dict[str, Any] = None) -> None:
+        """ Adds an edge to the graph, with optional attributes.
+
+            Args:
+              tail: tuple containing the tail's data: (node's name, port's name).
+                The port's name can be None.
+              head: tuple containing the head's data: (node's name, port's name)
+                The port's name can be None.
+              attributes: dot attributes of the edge
+        """
+
+        tail_node, tail_port = tail
+        head_node, head_port = head
+
+        # The head and tail are in the form: `node:port`, or simply `node` if no port
+        # is specified
+        tail_str = tail_node
+        if tail_port is not None:
+            tail_str += f':{tail_port}'
+        head_str = head_node
+        if head_port is not None:
+            head_str += f':{head_port}'
+
+        new_line = f"\t{tail_str} -> {head_str}"
         if attributes is not None:
             new_line += ' '
             new_line += self._generate_list_of_attributes(attributes)

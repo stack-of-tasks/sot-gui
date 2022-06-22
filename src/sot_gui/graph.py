@@ -383,9 +383,9 @@ class Graph:
             inputs = []
             outputs = []
             for port in entity.inputs():
-                inputs.append((entity.name(), port.name()))
+                inputs.append((port.name(), port.name()))
             for port in entity.outputs():
-                outputs.append((entity.name(), port.name()))
+                outputs.append((port.name(), port.name()))
 
             dot_generator.add_html_node(entity.name(), (inputs, outputs))
             
@@ -403,13 +403,25 @@ class Graph:
                     continue
 
                 # Node whose output is linked this input via this signal:
-                parent_node_name = edge.tail().node().name()
+                parent_port = edge.tail()
+                parent_node = parent_port.node()
+                parent_node_name = parent_node.name()
 
                 # The value is displayed only if the parent node isn't an InputNode:
                 attributes = None
                 if isinstance(self._get_node_per_name(parent_node_name), EntityNode):
                     attributes = {'label': edge.value()}
-                dot_generator.add_edge(parent_node_name, entity.name(), attributes)
+
+                # The tail's port will not be displayed if the parent node is an
+                # input value
+                if isinstance(parent_node, EntityNode):
+                    tail = (parent_node_name, parent_port.name())
+                else:
+                    tail = (parent_node_name, None)
+
+                head = (entity.name(), edge.head().name())
+                
+                dot_generator.add_edge(tail, head, attributes)
 
 
     #
@@ -421,6 +433,7 @@ class Graph:
             list of qt items and stores it as their `_qt_item` attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
+        print(encoded_dot_code.decode())
 
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE, stderr=PIPE)\
             .communicate(encoded_dot_code)
@@ -449,7 +462,6 @@ class Graph:
     def get_qt_items(self) -> List[QGraphicsItem]:
         """ Returns a list of all the qt items necessary to display the graph. """
 
-        self._generate_qt_items()
         qt_items = []
 
         def add_qt_item(qt_item: QGraphicsItem) -> None:
