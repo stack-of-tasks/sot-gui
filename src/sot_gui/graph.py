@@ -190,6 +190,7 @@ class Graph:
 
     def __init__(self, dg_communication: DynamicGraphCommunication):
         self._dg_communication = dg_communication
+        self._entities_labels_config = self._get_entities_labels_config()
 
         # Entities that exist in the dynamic graph:
         self._dg_entities: List[EntityNode] = []
@@ -197,6 +198,18 @@ class Graph:
         self._input_nodes: List[InputNode] = []
         # Information about the graph as a whole (name, dimensions, background color...):
         self._graph_info: Dict[str, Any] = {}
+
+
+    def _get_entities_labels_config(self) -> Dict[str, str]:
+        """ Returns a dictionary containing which labels to use for entity
+            types we want to label in a specific way. 
+            This configuration can be modified in entities_labels_config.py.
+        """
+        try:
+            from sot_gui.entities_labels_config import entities_labels
+            return entities_labels
+        except:
+            return None
 
 
     def graph_info(self) -> Dict[str, Any]:
@@ -387,8 +400,25 @@ class Graph:
             for port in entity.outputs():
                 outputs.append((port.name(), port.name()))
 
-            dot_generator.add_html_node(entity.name(), (inputs, outputs))
+            label = self._generate_entity_node_label(entity)
+
+            dot_generator.add_html_node(entity.name(), (inputs, outputs), label)
             
+
+    def _generate_entity_node_label(self, node: EntityNode) -> str:
+        """ Generates a label to display on the node, according to its known
+            information and labeling configuration.
+        """
+        node_type = node.type()
+        node_name = node.name()
+
+        if self._entities_labels_config is not None \
+                and node_type in self._entities_labels_config:
+            return self._entities_labels_config[node_type]
+        if node_type is None:
+            return node_name
+        return f"{node_type}({node_name})"
+
 
     def _add_edges_to_dot_code(self, dot_generator: DotDataGenerator):
         """ Adds all of the graph's edges to the given dot data generator. """
@@ -433,7 +463,7 @@ class Graph:
             list of qt items and stores it as their `_qt_item` attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
-        print(encoded_dot_code.decode())
+        #print(encoded_dot_code.decode())
 
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE, stderr=PIPE)\
             .communicate(encoded_dot_code)
