@@ -1,5 +1,4 @@
-# This dictionary indicates which labels to use for entity types that are to be 
-# labeled in a specific way:
+""" Configuration of the labels to use by entity type. """
 
 entities_labels = {
     'Add_of_double': '+',

@@ -55,7 +55,7 @@ class DotDataGenerator:
 
 
     def add_html_node(self, name: str, ports: Tuple[List[Tuple[str]]],
-            label: str = None) -> None:
+                      label: str = None) -> None:
         """ Adds an html-style node to the graph.
 
         Args:
@@ -78,14 +78,14 @@ class DotDataGenerator:
             label = name
 
         table_content = self._get_html_rows_for_node(label, inputs, outputs)
-        html = f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" ' +\
-                f'CELLPADDING="4">\n{table_content}\t</TABLE>>'
+        html = (f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" '
+                f'CELLPADDING="4">\n{table_content}\t</TABLE>>')
 
         self._graph_content_str += f'\t{name} [label={html}]\n'
 
 
     def _get_html_rows_for_node(self, label: str, inputs: List[Tuple[str]],
-            outputs: List[Tuple[str]]) -> str:
+                                outputs: List[Tuple[str]]) -> str:
         """ Generates html code for the rows of a node.
 
         Args:
@@ -128,8 +128,8 @@ class DotDataGenerator:
             if max_nb == 'inputs':
                 input = inputs[i]
                 rowspan_output = inputs_nb // outputs_nb
-                if output_count < outputs_nb and \
-                        i == output_count * rowspan_output:
+                if (output_count < outputs_nb and
+                    i == output_count * rowspan_output):
                     output = outputs[output_count]
                     if output_count == outputs_nb - 1: # If it's the last output
                         rowspan_output = remaining_nb_rows
@@ -159,8 +159,8 @@ class DotDataGenerator:
             input_cell = ''
             if input is not None:
                 (in_name, in_label) = input
-                input_cell = f'\t\t\t<TD ROWSPAN="{rowspan_input}" ' + \
-                    f'PORT="{in_name}">{in_label}</TD>\n'
+                input_cell = (f'\t\t\t<TD ROWSPAN="{rowspan_input}" '
+                    f'PORT="{in_name}">{in_label}</TD>\n')
 
             # The node's label is added to the first row and spans over each row
             label_cell = ''
@@ -170,8 +170,8 @@ class DotDataGenerator:
             output_cell = ''
             if output is not None:
                 (out_name, out_label) = output
-                output_cell = f'\t\t\t<TD ROWSPAN="{rowspan_output}" ' + \
-                    f'PORT="{out_name}">{out_label}</TD>\n'
+                output_cell = (f'\t\t\t<TD ROWSPAN="{rowspan_output}" '
+                    f'PORT="{out_name}">{out_label}</TD>\n')
 
             row_content = input_cell + label_cell + output_cell
             rows_html += f'\t\t<TR>\n{row_content}\t\t</TR>\n'
@@ -180,7 +180,7 @@ class DotDataGenerator:
     
 
     def add_edge(self, tail: Tuple[str, str], head: Tuple[str, str],
-            attributes: Dict[str, Any] = None) -> None:
+                 attributes: Dict[str, Any] = None) -> None:
         """ Adds an edge to the graph, with optional attributes.
 
         Args:
