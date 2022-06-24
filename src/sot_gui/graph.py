@@ -289,7 +289,7 @@ class Graph:
         is_plugged = self._dg_communication.is_signal_plugged(child_node_name, sig_name)
         if not is_plugged:
             return
-        linked_plug_descr = self._dg_communication.get_linked_plug(child_node_name, sig_name)
+        linked_plug_descr = self._dg_communication.get_linked_signal(child_node_name, sig_name)
         if linked_plug_descr is None: # If the node doesn't have a parent node
             return
         linked_plug_info = self._parse_signal_description(linked_plug_descr)
