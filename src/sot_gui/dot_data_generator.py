@@ -84,6 +84,15 @@ class DotDataGenerator:
         self._graph_content_str += f'\t{name} [label={html}]\n'
 
 
+    # When the number of inputs is not a multiple of the number of
+    # outputs (or vice versa), the size of the cells will vary in the column
+    # with less elements.
+    # Regular html allows for a balanced table thanks to empty rows (<TR></TR>),
+    # but dot does not support them.
+    # If support for empty rows is added to dot in the future, this method
+    # should be updated to allow for a more even display of the ports.
+    # Online tool to help understand where to use empty rows:
+    # https://www.tablesgenerator.com/html_tables
     def _get_html_rows_for_node(self, label: str, inputs: List[Tuple[str]],
                                 outputs: List[Tuple[str]]) -> str:
         """ Generates html code for the rows of a node.
