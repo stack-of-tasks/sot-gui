@@ -2,13 +2,12 @@ import threading
 from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
-    QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem)
+    QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem,
+    QGraphicsPolygonItem)
 from PySide2.QtGui import QColor
-from PySide2.QtCore import Signal
 
-from sot_gui.graph import Graph
+from sot_gui.graph import Graph, Edge
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
-from sot_gui.graph_items import (GraphPolygon)
 
 
 class MainWindow(QMainWindow):
@@ -144,13 +143,25 @@ class MainWindow(QMainWindow):
 
 class GraphScene(QGraphicsScene):
 
-    item_clicked = Signal(object)
-
     def __init__(self, parent):
         super().__init__(parent)
         self._connected_to_kernel = False
         self._dg_communication = DynamicGraphCommunication()
         self._graph = Graph(self._dg_communication)
+
+
+    def mouseReleaseEvent(self, event):
+        click_pos = event.scenePos()
+        trans_matrix = self.views()[0].transform()
+        clicked_item = self.itemAt(click_pos, trans_matrix)
+        
+        if clicked_item is not None:
+            graph_elem = self._graph.get_elem_per_qt_item(clicked_item)
+            if isinstance(graph_elem, Edge):
+                print(graph_elem.tail().node().name(),
+                      graph_elem.head().node().name())
+            else:
+                print(graph_elem.name())
 
     
     def connection_status(self) -> bool:
@@ -180,7 +191,7 @@ class GraphScene(QGraphicsScene):
     def change_color(self):
         items = self.items()
         for item in items:
-            if isinstance(item, GraphPolygon):
+            if isinstance(item, QGraphicsPolygonItem):
                 item.setBrush(QColor('orange'))
 
 

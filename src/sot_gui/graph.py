@@ -1,5 +1,5 @@
 from __future__ import annotations # To prevent circular dependencies of typing
-from typing import List, Any, Dict
+from typing import List, Any, Dict, Union
 from subprocess import Popen, PIPE
 from copy import deepcopy
 
@@ -16,8 +16,8 @@ class Node:
     def __init__(self):
         self._name: str = None
         self._type: str = None
-        self._inputs: List[self.Port] = None
-        self._outputs: List[self.Port] = None
+        self._inputs: List[Port] = None
+        self._outputs: List[Port] = None
         self._qt_item: QGraphicsItem = None
 
 
@@ -57,7 +57,7 @@ class Node:
 
 
     def add_port(self, name: str, type: str) -> Port:
-        new_port = self.Port(name, type, self)
+        new_port = Port(name, type, self)
         if type == 'input':
             self._inputs.append(new_port)
         elif type == 'output':
@@ -80,45 +80,6 @@ class Node:
                 return port
         return None
 
-    
-    class Port:
-        def __init__(self, name: str, type: str, node: Node):
-            self._qt_item: QGraphicsItem = None
-            self._edge = None
-            self._name = name
-            self._type = type # 'input' or 'output'
-            self._node = node
-
-
-        def name(self) -> str:
-            return self._name
-
-
-        def type(self) -> str:
-            return self._type
-
-
-        def qt_item(self) -> QGraphicsItem:
-            return self._qt_item
-        def set_qt_item(self, qt_item: QGraphicsItem) -> None:
-            self._qt_item = qt_item
-
-
-        def node(self) -> str:
-            return self._node
-
-
-        def edge(self) -> str:
-            return self._edge
-        def set_edge(self, edge: Edge) -> str:
-            self._edge = edge
-            if self._type == 'input':
-                edge.set_head(self)
-            elif self._type == 'output':
-                edge.set_tail(self)
-            else:
-                raise ValueError("Port type must be either 'input' or 'output'")
-
 
 class InputNode(Node):
     _input_node_count = 0
@@ -131,7 +92,7 @@ class InputNode(Node):
         self._name = f"InputNode{InputNode._input_node_count}"
         InputNode._input_node_count += 1
 
-        output_port = self.Port("sout0", 'output', self)
+        output_port = Port("sout0", 'output', self)
         output_port.set_edge(output_edge)
         self._outputs = [output_port]
 
@@ -145,18 +106,53 @@ class EntityNode(Node):
         self._qt_item = None
 
 
+class Port:
+    def __init__(self, name: str, type: str, node: Node):
+        self._qt_item: QGraphicsItem = None
+        self._edge = None
+        self._name = name
+        self._type = type # 'input' or 'output'
+        self._node = node
+
+
+    def name(self) -> str:
+        return self._name
+
+
+    def type(self) -> str:
+        return self._type
+
+
+    def qt_item(self) -> QGraphicsItem:
+        return self._qt_item
+    def set_qt_item(self, qt_item: QGraphicsItem) -> None:
+        self._qt_item = qt_item
+
+
+    def node(self) -> str:
+        return self._node
+
+
+    def edge(self) -> str:
+        return self._edge
+    def set_edge(self, edge: Edge) -> str:
+        self._edge = edge
+        if self._type == 'input':
+            edge.set_head(self)
+        elif self._type == 'output':
+            edge.set_tail(self)
+        else:
+            raise ValueError("Port type must be either 'input' or 'output'")
+
+
 class Edge:
     def __init__(self, value: Any = None, value_type: str = None,
-                head: Node.Port = None, tail: Node.Port = None):
+                head: Port = None, tail: Port = None):
         self._qt_item: QGraphicsItem = None
         self._value = value
         self._value_type = value_type
         self._head = head
         self._tail = tail
-
-
-    def name(self) -> str:
-        return self._name
 
 
     def value(self) -> Any:
@@ -175,15 +171,15 @@ class Edge:
         self._qt_item = qt_item
 
 
-    def head(self) -> Node.Port:
+    def head(self) -> Port:
         return self._head
-    def set_head(self, head: Node.Port) -> None:
+    def set_head(self, head: Port) -> None:
         self._head = head
 
 
-    def tail(self) -> Node.Port:
+    def tail(self) -> Port:
         return self._tail
-    def set_tail(self, tail: Node.Port) -> None:
+    def set_tail(self, tail: Port) -> None:
         self._tail = tail
 
 
@@ -537,3 +533,30 @@ class Graph:
                     add_qt_item(port.edge().qt_item())
 
         return qt_items
+
+
+    def get_elem_per_qt_item(self, qt_item: QGraphicsItem) \
+                             -> Union[Node, Port, Edge]:
+        
+        # Getting the parent item (e.g if item is a port's label, we must use
+        # its parent, which is the outline of the cell)
+        item = qt_item
+        while item.parentItem() != None:
+            item = item.parentItem()
+
+        for node in self._dg_entities + self._input_nodes:
+            if node.qt_item() == item:
+                return node
+            
+            if isinstance(node, InputNode):
+                continue
+
+            for port in node.ports():
+                if port.qt_item() == item:
+                    return port
+
+                edge = port.edge()
+                if edge is not None and edge.qt_item() == item:
+                    return edge
+        
+        return None

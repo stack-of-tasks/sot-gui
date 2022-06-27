@@ -2,14 +2,14 @@ from typing import Any, Dict, List, Tuple, Union
 
 from json import loads
 
-from PySide2.QtWidgets import QGraphicsItem
+from PySide2.QtWidgets import (QGraphicsItem, QGraphicsPolygonItem,
+    QGraphicsEllipseItem, QGraphicsTextItem, QGraphicsPathItem)
 from PySide2.QtGui import QPolygonF, QPainterPath, QBrush, QColor
 from PySide2.QtCore import QRectF, QPointF
 
 from sot_gui.utils import (get_dict_with_element, get_dicts_with_element,
     get_dict_with_element_in_list, get_dicts_with_element_in_list)
-from sot_gui.graph_items import (GraphPolygon, GraphEllipse, GraphText,
-    GraphPath)
+
 
 # Documentation on dot's json output:
 # https://graphviz.org/docs/outputs/json/
@@ -354,7 +354,7 @@ class JsonToQtGenerator:
     # Basic QGraphicsItems generation
     #
 
-    def _generate_polygon(self, data: Dict[str, Any]) -> GraphPolygon:
+    def _generate_polygon(self, data: Dict[str, Any]) -> QGraphicsPolygonItem:
         polygon = QPolygonF()
 
         # Adding each of the polygon's points:
@@ -362,11 +362,11 @@ class JsonToQtGenerator:
             qt_coord = self._dot_coords_to_qt_coords((point[0], point[1]))
             polygon.append(QPointF(qt_coord[0], qt_coord[1]))
         
-        polygonItem = GraphPolygon(polygon)
+        polygonItem = QGraphicsPolygonItem(polygon)
         return polygonItem
 
 
-    def _generate_ellipse(self, data: Dict[str, Any]) -> GraphEllipse:
+    def _generate_ellipse(self, data: Dict[str, Any]) -> QGraphicsEllipseItem:
         # Gettings the ellipse's rectangle's dimensions:
         rect_data = data[j.RECT]
         width = rect_data[2] * 2
@@ -378,18 +378,18 @@ class JsonToQtGenerator:
 
         # Creating the ellipse:
         rect = QRectF(qt_coords[0], qt_coords[1], width, height)
-        ellipse = GraphEllipse(rect)
+        ellipse = QGraphicsEllipseItem(rect)
         return ellipse
 
 
-    def _generate_text(self, data: Dict[str, Any]) -> GraphText:
+    def _generate_text(self, data: Dict[str, Any]) -> QGraphicsTextItem:
         #font = QFont('Times', 14)
-        text = GraphText(data[j.TEXT])
+        text = QGraphicsTextItem(data[j.TEXT])
         #text.setFont(font)
         return text
 
 
-    def _generate_spline(self, data: Dict[str, Any]) -> GraphPath:
+    def _generate_spline(self, data: Dict[str, Any]) -> QGraphicsPathItem:
         # Getting the points' qt coordinates:
         coordsQt = []
         for point in data:
@@ -403,7 +403,7 @@ class JsonToQtGenerator:
         path.cubicTo(coordsQt[1][0], coordsQt[1][1], coordsQt[2][0], coordsQt[2][1],
             coordsQt[3][0], coordsQt[3][1])
 
-        curve = GraphPath(path)
+        curve = QGraphicsPathItem(path)
         return curve
 
 
