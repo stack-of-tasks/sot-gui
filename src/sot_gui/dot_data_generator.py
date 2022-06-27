@@ -85,7 +85,7 @@ class DotDataGenerator:
 
 
     # When the number of inputs is not a multiple of the number of
-    # outputs (or vice versa), the size of the cells will vary in the column
+    # outputs (or vice versa), the height of the cells will vary in the column
     # with less elements.
     # Regular html allows for a balanced table thanks to empty rows (<TR></TR>),
     # but dot does not support them.
