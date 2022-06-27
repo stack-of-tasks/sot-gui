@@ -1,12 +1,14 @@
 import threading
 from time import sleep
 
-from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView, QToolBar,
-    QAction, QGraphicsRectItem, QGraphicsPolygonItem, QMessageBox, QLabel)
+from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
+    QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem)
 from PySide2.QtGui import QColor
+from PySide2.QtCore import Signal
 
 from sot_gui.graph import Graph
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
+from sot_gui.graph_items import (GraphPolygon)
 
 
 class MainWindow(QMainWindow):
@@ -62,9 +64,9 @@ class MainWindow(QMainWindow):
 
 
     def _add_status_bar(self) -> None:
-        # If the kernel is stopped and relaunched, its session has changed and sending
-        # commands will result in a crash. To prevent this, we don't allow the user to
-        # send commands until they triggered a reconnection:
+        # If the kernel is stopped and relaunched, its session has changed and
+        # sending commands will result in a crash. To prevent this, we don't
+        # allow the user to send commands until they triggered a reconnection:
         self._reconnection_needed = not self._graph_scene.connection_status()
 
         # Adding a status bar displaying the connection status:
@@ -79,7 +81,7 @@ class MainWindow(QMainWindow):
                 self._update_co_status_indicator()
                 sleep(0.1)
             
-        # Launching a thread to update the status of the connection to the kernel:
+        # Launching a thread to update the connection status of the kernel:
         self._kernel_heartbeat_thread = threading.Thread(
             target=_connection_status_updating)
         self._kernel_heartbeat_thread.setDaemon(True)
@@ -142,6 +144,8 @@ class MainWindow(QMainWindow):
 
 class GraphScene(QGraphicsScene):
 
+    item_clicked = Signal(object)
+
     def __init__(self, parent):
         super().__init__(parent)
         self._connected_to_kernel = False
@@ -176,7 +180,7 @@ class GraphScene(QGraphicsScene):
     def change_color(self):
         items = self.items()
         for item in items:
-            if isinstance(item, QGraphicsPolygonItem):
+            if isinstance(item, GraphPolygon):
                 item.setBrush(QColor('orange'))
 
 

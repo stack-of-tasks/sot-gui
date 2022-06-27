@@ -49,6 +49,13 @@ class Node:
         return []
 
 
+    def ports(self) -> List[Port]:
+        ports = []
+        ports += self.inputs()
+        ports += self.outputs()
+        return ports
+
+
     def add_port(self, name: str, type: str) -> Port:
         new_port = self.Port(name, type, self)
         if type == 'input':
@@ -470,22 +477,38 @@ class Graph:
         #print(out.decode())
 
         qt_generator = JsonToQtGenerator(out.decode('utf-8'))
-        # For every node, we get its qt items:
+        # For every node, we get its qt item (as a parent item containing the
+        # other items):
         for node in self._input_nodes + self._dg_entities:
+
+            # If it's an InputNode, only qt items for the node are needed (its
+            # ports are not displayed and they have no input edges)
+            if isinstance(node, InputNode):
+                qt_item_node = qt_generator.get_qt_item_for_node(node.name())
+                node.set_qt_item(qt_item_node)
+                continue
+
+            # If it's an EntityNode, the qt item corresponding to the node is
+            # middle column of the html table (i.e the node's label)
             qt_item_node = qt_generator.get_qt_item_for_node(node.name())
             node.set_qt_item(qt_item_node)
 
-            if isinstance(node, InputNode):
-                continue
+            # Getting the qt items for each of the EntityNode's ports and edges:
+            for port in node.ports():
+                qt_item_port = qt_generator.get_qt_item_for_port(node.name(),
+                                                                 port.name())
+                port.set_qt_item(qt_item_port)
 
-            for port in node.inputs():
+                if port.type() == 'output':
+                    continue
                 edge = port.edge()
                 if edge is None:
                     continue
                 head_name = edge.head().node().name()
                 tail_name = edge.tail().node().name()
                 
-                qt_item_edge = qt_generator.get_qt_item_for_edge(head_name, tail_name)
+                qt_item_edge = qt_generator.get_qt_item_for_edge(head_name,
+                                                                 tail_name)
                 edge.set_qt_item(qt_item_edge)
 
 
