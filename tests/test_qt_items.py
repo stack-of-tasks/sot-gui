@@ -15,15 +15,6 @@ from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 input_scripts_dir = str(Path(__file__).resolve().parent/'dg_scripts')
 
 
-# FIXME:
-# If a SOTKernel is already running, another cannot be launched because it
-# would use the same ports (this is expected behavior).
-# When running these tests when a SOTKernel is already running, it should fail
-# because this class launches its own SOTKernel. But the tests are run anyway
-# because the exception when launching the kernel is ignored, and each test
-# class launches a client that connect to the latest SOTKernel (i.e the one
-# launched before the tests).
-
 class TestQtItems(TestCase):
     """ Tests the generation of qt items, from fetching data from the kernel to
         getting the list of the graph qt items from the Graph object.
@@ -128,3 +119,9 @@ class TestQtItems(TestCase):
 
     def test_partially_linked_nodes(self):
         assert self._check_nb_items_for_file('partially_linked_nodes.py', 35)
+
+
+    def test_empty_graph(self):
+        self._graph.refresh_graph()
+        qt_items = self._graph.get_qt_items()
+        assert len(qt_items) == 0
