@@ -10,8 +10,6 @@ class DynamicGraphCommunication():
     def __init__(self):
         self._client = SOTClient()
         self.connect_to_kernel()
-        
-        self._import_dynamic_graph()
 
 
     def connect_to_kernel(self) -> bool:
@@ -21,7 +19,8 @@ class DynamicGraphCommunication():
               True if the connection was successful, False if not.
         """
         
-        self._client.connect_to_kernel()
+        if self._client.connect_to_kernel() is False:
+            return False
         try:
             self._import_dynamic_graph()
             return True

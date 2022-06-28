@@ -439,13 +439,15 @@ class JsonToQtGenerator:
 
 
     def _init_html_nodes_data(self) -> None:
-        """ Structures and stores the html-style nodes' display data.
+        """ Structures and stores the html-style nodes' display data in
+        self._graph_data.
         
         The data will be stored as a dictionary, each key being a node's name
         and its value being a list of the node's cells' display data.
         The display data for a cell is a tuple. Its first element is a list of
         the outline's data dictionaries, and its second element is a list of the
         label's data dictionaries.
+        If the graph is empty, self._graph_data will remain an empty list.
         Storing this info at init prevents from recomputing each node's data
         when accessing its body and each of its ports.
 
@@ -453,6 +455,9 @@ class JsonToQtGenerator:
             RuntimeError: The json data contains info on a node with less than
                 3 cells
         """
+
+        if j.OBJECTS not in self._graph_data: # If the graph is empty
+            return
 
         for node in self._graph_data[j.OBJECTS]:
             # TODO: check that it's not a cluster
