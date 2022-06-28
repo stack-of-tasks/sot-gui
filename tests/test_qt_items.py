@@ -7,7 +7,8 @@ from PySide2.QtWidgets import QApplication
 from PySide2.QtWidgets import QGraphicsItem
 
 from sot_ipython_connection.sot_kernel import SOTKernel
-from sot_ipython_connection.app.sot_script_executer import main as script_executer
+from sot_ipython_connection.app.sot_script_executer import (main as
+    script_executer)
 from sot_gui.graph import Graph
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
