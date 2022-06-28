@@ -188,31 +188,39 @@ class DotDataGenerator:
         return rows_html
     
 
-    def add_edge(self, tail: Tuple[str, str], head: Tuple[str, str],
+    def add_edge(self, tail: Tuple[str, str, str], head: Tuple[str, str, str],
                  attributes: Dict[str, Any] = None) -> None:
         """ Adds an edge to the graph, with optional attributes.
 
         Args:
-            tail: tuple containing the tail's data: (node's name, port's name).
-                The port's name can be None.
-            head: tuple containing the head's data: (node's name, port's name)
-                The port's name can be None.
+            tail: tuple containing the tail data: (node name, port name,
+                port type). The port name can be None. 
+            head: tuple containing the head data: (node name, port name,
+                port type). The port name can be None.
             attributes: A dictionary containing the attributes of the edge.
                 The keys and values are in the same form as in dot code (e.g
                 `attributes['color'] = 'red'` corresponds to `color=red` in dot.
         """
 
-        tail_node, tail_port = tail
-        head_node, head_port = head
+        tail_node, tail_port, tail_type = tail
+        head_node, head_port, head_type = head
 
         # The head and tail are in the form: `node:port`, or simply `node` if
-        # no port is specified
+        # no port is specified.
         tail_str = tail_node
         if tail_port is not None:
             tail_str += f':{tail_port}'
         head_str = head_node
         if head_port is not None:
             head_str += f':{head_port}'
+
+        # If the edge's tip (head or tail) is an output, we add ':e' so the
+        # edge is bound to the east of the output (be it a port or a node). If
+        # it's an input, we add 'w' for 'west'.
+        def _get_edge_tip_placement(port_type):
+            return ':w' if port_type == 'input' else ':e'
+        tail_str += _get_edge_tip_placement(tail_type)
+        head_str += _get_edge_tip_placement(head_type)
 
         new_line = f"\t{tail_str} -> {head_str}"
         if attributes is not None:
@@ -221,6 +229,7 @@ class DotDataGenerator:
         new_line += '\n'
 
         self._graph_content_str += new_line
+
 
 
     def set_graph_attributes(self, attributes: Dict[str, Any]) -> None:

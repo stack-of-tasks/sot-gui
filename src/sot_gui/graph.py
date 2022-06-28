@@ -448,11 +448,12 @@ class Graph:
                 # The tail's port will not be displayed if the parent node is an
                 # input value
                 if isinstance(parent_node, EntityNode):
-                    tail = (parent_node_name, parent_port.name())
+                    tail = (parent_node_name, parent_port.name(),
+                            parent_port.type())
                 else:
-                    tail = (parent_node_name, None)
+                    tail = (parent_node_name, None, 'output')
 
-                head = (entity.name(), edge.head().name())
+                head = (entity.name(), edge.head().name(), edge.head().type())
                 
                 dot_generator.add_edge(tail, head, attributes)
 

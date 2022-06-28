@@ -3,5 +3,5 @@
 entities_labels = {
     'Add_of_double': '+',
     'Add_of_vector': '+',
-    #'Multiply_of_double': '*',
+    'Multiply_of_double': '*',
 }
