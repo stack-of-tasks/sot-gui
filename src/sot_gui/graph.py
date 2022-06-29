@@ -463,14 +463,15 @@ class Graph:
     #
 
     def _generate_qt_items(self) -> None:
-        """ For each Node, Port and Edge, this function generates the corresponding
-            list of qt items and stores it as their `_qt_item` attribute.
+        """ For each Node, Port and Edge, this function generates the
+            corresponding list of qt items and stores it as their `_qt_item`
+            attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
         #print(encoded_dot_code.decode())
 
-        (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE, stderr=PIPE)\
-            .communicate(encoded_dot_code)
+        (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE,
+                   stderr=PIPE).communicate(encoded_dot_code)
         #print(out.decode())
 
         qt_generator = JsonToQtGenerator(out.decode('utf-8'))
@@ -510,7 +511,8 @@ class Graph:
 
 
     def get_qt_items(self) -> List[QGraphicsItem]:
-        """ Returns a list of all the qt items necessary to display the graph. """
+        """ Returns a list of all the qt items necessary to display the graph.
+        """
 
         qt_items = []
 

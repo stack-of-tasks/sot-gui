@@ -260,27 +260,6 @@ class JsonToQtGenerator:
         return qt_item_body
 
 
-    # def _get_node_html_table(self, table_data: List[Dict]) -> QGraphicsItem:
-    #     """ Generates and returns a qt item for a node's html table. The qt item consists
-    #         of the table's outline as the parent item, containing every cell's outline which
-    #         contain the cell's label. The position of each item is set in this method.
-    #         Raises a RuntimeError if the table could not be generated due to missing data.
-    #     """
-
-    #     # Creating the parent first so that we can add the other cells as its children.
-        
-    #     mid_outline_data, mid_label_data = display_data[1]
-    #     qt_item_node = self._get_html_cell(mid_outline_data, mid_label_data)
-
-    #     for idx, (cell_outline_data, cell_label_data) in enumerate(display_data):
-    #         if idx != 1:
-    #             # If it's not the midlle column
-    #             cell_qt_item = self._get_html_cell(cell_outline_data, cell_label_data)
-    #             cell_qt_item.setParentItem(qt_item_node)
-
-    #     return qt_item_node
-
-
     def _get_html_cell(self, outline_data: List[Dict], label_data: List[Dict]) \
             -> QGraphicsItem:
         """ Generates and returns qt items for a node's html table's cell,
@@ -389,21 +368,38 @@ class JsonToQtGenerator:
         return text
 
 
-    def _generate_spline(self, data: Dict[str, Any]) -> QGraphicsPathItem:
-        # Getting the points' qt coordinates:
+    def _generate_spline(self, points_data: List) -> QGraphicsPathItem:
+        # Getting the points qt coordinates:
         coordsQt = []
-        for point in data:
+        for point in points_data:
            coordsQt.append(self._dot_coords_to_qt_coords((point[0], point[1])))
 
-        path = QPainterPath()
+        # A spline is defined by Bezier spline control points.
+        # The first 4 points are the first Bezier spline control points, the
+        # next 4 points are the second B-spline, etc
+        bezier_splines = []
+        for i in range(1, len(coordsQt), 3):
+            bezier_spline = []
+            for j in range(-1, 3):
+                bezier_spline.append(coordsQt[i + j])
+            bezier_splines.append(bezier_spline)
 
-        # Setting the first point:
-        path.moveTo(coordsQt[0][0], coordsQt[0][1])
-        # Setting the 3 next points:
-        path.cubicTo(coordsQt[1][0], coordsQt[1][1], coordsQt[2][0], coordsQt[2][1],
-            coordsQt[3][0], coordsQt[3][1])
+        main_path = None
+        for spline in bezier_splines:
+            path = QPainterPath()
 
-        curve = QGraphicsPathItem(path)
+            # Setting the first point:
+            path.moveTo(spline[0][0], spline[0][1])
+            # Setting the 3 next points:
+            path.cubicTo(spline[1][0], spline[1][1], spline[2][0], spline[2][1],
+                         spline[3][0], spline[3][1])
+
+            if main_path is None:
+                main_path = path
+            else:
+                main_path.addPath(path)
+
+        curve = QGraphicsPathItem(main_path)
         return curve
 
 

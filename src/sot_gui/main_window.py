@@ -4,7 +4,7 @@ from time import sleep
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem,
     QGraphicsPolygonItem)
-from PySide2.QtGui import QColor
+from PySide2.QtGui import QColor, QPainterPath
 
 from sot_gui.graph import Graph, Edge
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
@@ -88,6 +88,9 @@ class MainWindow(QMainWindow):
 
 
     def _update_co_status_indicator(self) -> None:
+        if self._co_status_indicator is None:
+            return
+
         if self._graph_scene.connection_status() is False:
             color = 'red'
             text = 'No kernel detected'
@@ -185,6 +188,10 @@ class GraphScene(QGraphicsScene):
     def add_rect(self):
         print(self.sceneRect())
         self.addItem(QGraphicsRectItem(0, 0, 1000, 1000))
+
+        coords = ...
+        path = QPainterPath()
+
         print(self.sceneRect())
 
 
