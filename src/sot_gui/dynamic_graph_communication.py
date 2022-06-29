@@ -13,7 +13,8 @@ class DynamicGraphCommunication():
 
 
     def connect_to_kernel(self) -> bool:
-        """ Launches a new client that will connect to the latest kernel.
+        """ Launches a new client that will attempt a connection with the latest
+            kernel.
 
             Returns:
               True if the connection was successful, False if not.

@@ -38,6 +38,7 @@ class MainWindow(QMainWindow):
     #
 
     def _add_toolbar(self) -> None:
+        """ Adds the sot graph toolbar to the main window. """
         toolbar = QToolBar("Toolbar")
         self.addToolBar(toolbar)
 
@@ -63,10 +64,15 @@ class MainWindow(QMainWindow):
 
 
     def _add_status_bar(self) -> None:
+        """ Adds a status bar to the main window.
+
+            The status bar displays the connection status. This method launches
+            a thread to monitor this status.
+        """
         # If the kernel is stopped and relaunched, its session has changed and
         # sending commands will result in a crash. To prevent this, we don't
         # allow the user to send commands until they triggered a reconnection:
-        self._reconnection_needed = not self._graph_scene.connection_status()
+        self._reconnection_needed = not self._graph_scene.is_kernel_running()
 
         # Adding a status bar displaying the connection status:
         self._co_status_indicator = QLabel("")
@@ -74,7 +80,7 @@ class MainWindow(QMainWindow):
 
         def _connection_status_updating() -> None:
             while 1:
-                if self._graph_scene.connection_status() is False:
+                if self._graph_scene.is_kernel_running() is False:
                     self._reconnection_needed = True
 
                 self._update_co_status_indicator()
@@ -88,10 +94,11 @@ class MainWindow(QMainWindow):
 
 
     def _update_co_status_indicator(self) -> None:
+        """ Updates the text and color of the connection status indicator. """
         if self._co_status_indicator is None:
             return
 
-        if self._graph_scene.connection_status() is False:
+        if self._graph_scene.is_kernel_running() is False:
             color = 'red'
             text = 'No kernel detected'
 
@@ -107,6 +114,16 @@ class MainWindow(QMainWindow):
 
 
     def _message_box_no_connection(self, refresh: bool = False) -> None:
+        """ Displays a message box which asks the user if the want to reconnect
+            to the kernel.
+
+            If the user clicks Yes, a connection attempt is made. If they click
+            No, nothing is done. In any case, the message box is closed.
+
+            Args:
+                refresh: if True, the graph will be refreshed after the
+                    connection attempt, if it was successful.
+        """
         message_box = QMessageBox(self.parent())
         message_box.setWindowTitle("No connection")
 
@@ -128,6 +145,14 @@ class MainWindow(QMainWindow):
     #
 
     def refresh_graph(self) -> None:
+        """ Refreshes the graph. New graph data will be fetched from the kernel
+            and displayed.
+
+            If there is no connection to a running kernel, the refresh is
+            aborted and a message box is opened to offer the user to connect.
+            If they click yes, a new graph refresh will be attempted after the
+            reconnection.
+        """
         if self._reconnection_needed:
             self._message_box_no_connection(refresh=True)
         else:
@@ -138,6 +163,12 @@ class MainWindow(QMainWindow):
 
 
     def reconnect(self) -> None:
+        """ Reconnects the graph to the latest running kernel.
+
+            The graph will not be automatically refreshed.
+            If there is no running kernel, a message box is opened to alert the
+            user and let them launch one before re-attempting a connection.
+        """
         if self._graph_scene.reconnect():
             self._reconnection_needed = False
         else:
@@ -145,6 +176,12 @@ class MainWindow(QMainWindow):
 
 
 class GraphScene(QGraphicsScene):
+    """ Scene which displays the graph qt items and manages the communication to
+        the kernel.
+
+        Attributes:
+            parent: See QGraphicsScene
+    """
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -154,6 +191,7 @@ class GraphScene(QGraphicsScene):
 
 
     def mouseReleaseEvent(self, event):
+        """ See QGraphicsScene """
         click_pos = event.scenePos()
         trans_matrix = self.views()[0].transform()
         clicked_item = self.itemAt(click_pos, trans_matrix)
@@ -167,12 +205,23 @@ class GraphScene(QGraphicsScene):
                 print(graph_elem.name())
 
     
-    def connection_status(self) -> bool:
+    def is_kernel_running(self) -> bool:
+        """ Returns True if a running SOTKernel is detected.
+
+            Every SOTKernel uses the same ports, which means a kernel can be
+            detected without the client being connected to it (if the client
+            was previously connected to a SOTKernel which has been stopped).
+        """
         return self._dg_communication.is_kernel_alive()
         
 
     def refresh(self) -> None:
-        """ Raises a ConnectionError if the kernel is not running. """
+        """ Refreshes the graph. New graph data will be fetched from the kernel
+            and displayed.
+
+        Raises:
+            ConnectionError: the kernel is not running.
+        """
             
         self._graph.refresh_graph()
         self.clear()
@@ -182,6 +231,11 @@ class GraphScene(QGraphicsScene):
 
 
     def reconnect(self) -> bool:
+        """ Attemps to reconnect the client to the latest kernel.
+        
+        Returns:
+            True if the connection was successful, False if not.
+        """
         return self._dg_communication.connect_to_kernel()
 
 
