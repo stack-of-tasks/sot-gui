@@ -1,3 +1,4 @@
+from enum import Enum
 import threading
 from time import sleep
 
@@ -17,7 +18,7 @@ class MainWindow(QMainWindow):
 
         # Adding the graph scene and its view:
         self._graph_scene = GraphScene(self)
-        self._view = QGraphicsView(self)
+        self._view = GraphView(self)
         self._view.setScene(self._graph_scene)
         self.setCentralWidget(self._view)
 
@@ -173,6 +174,58 @@ class MainWindow(QMainWindow):
             self._reconnection_needed = False
         else:
             self._message_box_no_connection()
+
+
+class GraphView(QGraphicsView):
+    """ TODO """
+    
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.interactionMode = self.InteractionMode.DEFAULT
+
+
+    #
+    # EVENT OVERRIDES
+    #
+
+    class InteractionMode(Enum):
+        """ This enum is used to determine how to handle events based on there
+            being an ongoing user action or not (e.g when the user creates a
+            group of entities, a click on a node must be handled differently)
+        """
+        DEFAULT = 0
+        GROUP_CREATION = 1 # When the user is creating a group of entities
+
+
+    def wheelEvent(self, event): # TODO
+        # The user can zoom in or out by rotating the mouse wheel:
+        self._handleZoom(event.angleDelta().y())
+        
+
+    # def keyReleaseEvent(self, event):
+    #     # If the group creation mode is on, releasing the escape key cancels the
+    #     # action and releasing the return key completes it:
+    #     if self.interactionMode == self.InteractionMode.GROUP_CREATION:
+    #         key = event.key()
+    #         if key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
+    #             self._completeGroupCreation()
+    #         elif key == QtCore.Qt.Key_Escape:
+    #             self._cancelGroupCreation()
+
+
+    def _handleZoom(self, delta: int) -> None:
+        """ Rescales the view according to the amount that the mouse wheel was
+            rotated.
+
+            Args:
+                delta: relative amount that the wheel was rotated
+        """
+        # For more info on the delta value, see:
+        # https://doc.qt.io/qtforpython-5/PySide2/QtGui/QWheelEvent.html#PySide2.QtGui.PySide2.QtGui.QWheelEvent.angleDelta
+        if delta > 0:
+            self.scale(1.25, 1.25)
+        else:
+            self.scale(0.8, 0.8)
 
 
 class GraphScene(QGraphicsScene):
