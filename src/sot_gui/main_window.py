@@ -17,8 +17,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Stack Of Tasks GUI")
 
         # Adding the graph scene and its view:
-        self._graph_scene = GraphScene(self)
-        self._view = GraphView(self)
+        self._graph_scene = SoTGraphScene(self)
+        self._view = SoTGraphView(self)
         self._view.setScene(self._graph_scene)
         self.setCentralWidget(self._view)
 
@@ -176,12 +176,18 @@ class MainWindow(QMainWindow):
             self._message_box_no_connection()
 
 
-class GraphView(QGraphicsView):
+class SoTGraphView(QGraphicsView):
     """ TODO """
     
     def __init__(self, parent):
         super().__init__(parent)
+
         self.interactionMode = self.InteractionMode.DEFAULT
+
+        # When the user drags the mouse, it moves the view:
+        self.setDragMode(QGraphicsView.ScrollHandDrag)
+        # To center the zoom on the position of the mouse:
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
 
 
     #
@@ -228,7 +234,7 @@ class GraphView(QGraphicsView):
             self.scale(0.8, 0.8)
 
 
-class GraphScene(QGraphicsScene):
+class SoTGraphScene(QGraphicsScene):
     """ Scene which displays the graph qt items and manages the communication to
         the kernel.
 
