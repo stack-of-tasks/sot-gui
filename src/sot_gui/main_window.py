@@ -6,6 +6,7 @@ from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem,
     QGraphicsPolygonItem)
 from PySide2.QtGui import QColor, QPainterPath
+from PySide2.QtCore import Qt
 
 from sot_gui.graph import Graph, Edge
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
@@ -51,6 +52,10 @@ class MainWindow(QMainWindow):
         button_reconnect.triggered.connect(self.reconnect)
         toolbar.addAction(button_reconnect)
 
+        button_reconnect = QAction("Create group", self)
+        button_reconnect.triggered.connect(self._create_entity_group)
+        toolbar.addAction(button_reconnect)
+
         button_add_rect = QAction("Add rect", self)
         button_add_rect.triggered.connect(self._graph_scene.add_rect)
         toolbar.addAction(button_add_rect)
@@ -86,7 +91,7 @@ class MainWindow(QMainWindow):
 
                 self._update_co_status_indicator()
                 sleep(0.1)
-            
+
         # Launching a thread to update the connection status of the kernel:
         self._kernel_heartbeat_thread = threading.Thread(
             target=_connection_status_updating)
@@ -139,7 +144,7 @@ class MainWindow(QMainWindow):
             self.reconnect()
             if refresh:
                 self.refresh_graph()
-        
+
 
     #
     # BUTTONS CALLBACKS
@@ -176,9 +181,14 @@ class MainWindow(QMainWindow):
             self._message_box_no_connection()
 
 
+    def _create_entity_group(self) -> None:
+        """ TODO """
+        self._view.launch_group_creation()
+
+
 class SoTGraphView(QGraphicsView):
-    """ TODO """
-    
+    """ Inherits QGraphicsView to handle events. """
+
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -190,10 +200,6 @@ class SoTGraphView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
 
 
-    #
-    # EVENT OVERRIDES
-    #
-
     class InteractionMode(Enum):
         """ This enum is used to determine how to handle events based on there
             being an ongoing user action or not (e.g when the user creates a
@@ -203,21 +209,31 @@ class SoTGraphView(QGraphicsView):
         GROUP_CREATION = 1 # When the user is creating a group of entities
 
 
-    def wheelEvent(self, event): # TODO
+    #
+    # EVENT OVERRIDES
+    #
+
+    def wheelEvent(self, event):
+        """ See QGraphicsView.wheelEvent """
         # The user can zoom in or out by rotating the mouse wheel:
         self._handleZoom(event.angleDelta().y())
-        
 
-    # def keyReleaseEvent(self, event):
-    #     # If the group creation mode is on, releasing the escape key cancels the
-    #     # action and releasing the return key completes it:
-    #     if self.interactionMode == self.InteractionMode.GROUP_CREATION:
-    #         key = event.key()
-    #         if key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
-    #             self._completeGroupCreation()
-    #         elif key == QtCore.Qt.Key_Escape:
-    #             self._cancelGroupCreation()
 
+    def keyReleaseEvent(self, event):
+        """ See QGraphicsView.keyReleaseEvent """
+        # If the group creation mode is on, releasing the escape key cancels the
+        # action and releasing the return key completes it:
+        if self.interactionMode == self.InteractionMode.GROUP_CREATION:
+            key = event.key()
+            if key == Qt.Key_Enter or key == Qt.Key_Return:
+                self._completeGroupCreation()
+            elif key == Qt.Key_Escape:
+                self._cancelGroupCreation()
+
+
+    #
+    # EVENT CALLBACKS
+    #
 
     def _handleZoom(self, delta: int) -> None:
         """ Rescales the view according to the amount that the mouse wheel was
@@ -232,6 +248,19 @@ class SoTGraphView(QGraphicsView):
             self.scale(1.25, 1.25)
         else:
             self.scale(0.8, 0.8)
+
+
+    def launch_group_creation(self) -> None:
+        if self.interactionMode != self.InteractionMode.GROUP_CREATION:
+            self.interactionMode = self.InteractionMode.GROUP_CREATION
+
+
+    def _completeGroupCreation(self) -> None:
+        self.interactionMode = self.InteractionMode.DEFAULT
+
+
+    def _cancelGroupCreation(self) -> None:
+        self.interactionMode = self.InteractionMode.DEFAULT
 
 
 class SoTGraphScene(QGraphicsScene):
@@ -254,7 +283,7 @@ class SoTGraphScene(QGraphicsScene):
         click_pos = event.scenePos()
         trans_matrix = self.views()[0].transform()
         clicked_item = self.itemAt(click_pos, trans_matrix)
-        
+
         if clicked_item is not None:
             graph_elem = self._graph.get_elem_per_qt_item(clicked_item)
             if isinstance(graph_elem, Edge):
@@ -263,7 +292,7 @@ class SoTGraphScene(QGraphicsScene):
             else:
                 print(graph_elem.name())
 
-    
+
     def is_kernel_running(self) -> bool:
         """ Returns True if a running SOTKernel is detected.
 
@@ -272,7 +301,7 @@ class SoTGraphScene(QGraphicsScene):
             was previously connected to a SOTKernel which has been stopped).
         """
         return self._dg_communication.is_kernel_alive()
-        
+
 
     def refresh(self) -> None:
         """ Refreshes the graph. New graph data will be fetched from the kernel
@@ -281,7 +310,7 @@ class SoTGraphScene(QGraphicsScene):
         Raises:
             ConnectionError: the kernel is not running.
         """
-            
+
         self._graph.refresh_graph()
         self.clear()
         self._items = self._graph.get_qt_items()
@@ -291,7 +320,7 @@ class SoTGraphScene(QGraphicsScene):
 
     def reconnect(self) -> bool:
         """ Attemps to reconnect the client to the latest kernel.
-        
+
         Returns:
             True if the connection was successful, False if not.
         """
