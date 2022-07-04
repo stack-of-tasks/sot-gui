@@ -27,7 +27,7 @@ class MainWindow(QMainWindow):
         self._add_status_bar()
 
         # Displaying the graph:
-        self.refresh_graph()
+        self._refresh_graph()
 
 
     def __del__(self):
@@ -45,11 +45,11 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         button_refresh = QAction("Refresh", self)
-        button_refresh.triggered.connect(self.refresh_graph)
+        button_refresh.triggered.connect(self._refresh_graph)
         toolbar.addAction(button_refresh)
 
         button_reconnect = QAction("Reconnect", self)
-        button_reconnect.triggered.connect(self.reconnect)
+        button_reconnect.triggered.connect(self._reconnect)
         toolbar.addAction(button_reconnect)
 
         button_reconnect = QAction("Create group", self)
@@ -141,16 +141,16 @@ class MainWindow(QMainWindow):
 
         return_value = message_box.exec_()
         if return_value == QMessageBox.Yes:
-            self.reconnect()
+            self._reconnect()
             if refresh:
-                self.refresh_graph()
+                self._refresh_graph()
 
 
     #
     # BUTTONS CALLBACKS
     #
 
-    def refresh_graph(self) -> None:
+    def _refresh_graph(self) -> None:
         """ Refreshes the graph. New graph data will be fetched from the kernel
             and displayed.
 
@@ -168,7 +168,7 @@ class MainWindow(QMainWindow):
                 self._message_box_no_connection(refresh=True)
 
 
-    def reconnect(self) -> None:
+    def _reconnect(self) -> None:
         """ Reconnects the graph to the latest running kernel.
 
             The graph will not be automatically refreshed.
@@ -182,7 +182,7 @@ class MainWindow(QMainWindow):
 
 
     def _create_entity_group(self) -> None:
-        """ TODO """
+        """ Launches the creation of an entity group. """
         self._view.launch_group_creation()
 
 
