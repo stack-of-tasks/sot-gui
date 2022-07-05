@@ -3,9 +3,9 @@ import threading
 from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
-    QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem,
+    QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem, QGraphicsItem,
     QGraphicsPolygonItem)
-from PySide2.QtGui import QColor, QPainterPath
+from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
 from sot_gui.graph import Graph, Edge
@@ -199,6 +199,8 @@ class SoTGraphView(QGraphicsView):
         # To center the zoom on the position of the mouse:
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
 
+        self._selected_items = []
+
 
     class InteractionMode(Enum):
         """ This enum is used to determine how to handle events based on there
@@ -231,6 +233,17 @@ class SoTGraphView(QGraphicsView):
                 self._cancelGroupCreation()
 
 
+    def mouseReleaseEvent(self, event):
+        """ See QGraphicsView.mouseReleaseEvent """
+        click_pos = event.localPos()
+        clicked_item = self.itemAt(click_pos.x(), click_pos.y())
+        if clicked_item is None:
+            return
+
+        if self.interactionMode == self.InteractionMode.GROUP_CREATION:
+            self._update_selected_items(clicked_item)
+
+
     #
     # EVENT CALLBACKS
     #
@@ -251,24 +264,41 @@ class SoTGraphView(QGraphicsView):
 
 
     def launch_group_creation(self) -> None:
+        """ TODO """
         if self.interactionMode != self.InteractionMode.GROUP_CREATION:
             self.interactionMode = self.InteractionMode.GROUP_CREATION
+            self._selected_items = []
 
 
     def _completeGroupCreation(self) -> None:
+        """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
+        print(len(self._selected_items))
+        self._selected_items = []
 
 
     def _cancelGroupCreation(self) -> None:
+        """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
+        self._selected_items = []
+
+
+    def _update_selected_items(self, item: QGraphicsItem) -> None:
+        """ TODO """
+        if item in self._selected_items:
+            self._selected_items.remove(item)
+            item.setBrush(QColor('white'))
+        else:
+            self._selected_items.append(item)
+            item.setBrush(QColor('orange'))
+        # TODO: (un)select node if a label or port is clicked, ignore edges
 
 
 class SoTGraphScene(QGraphicsScene):
-    """ Scene which displays the graph qt items and manages the communication to
-        the kernel.
+    """ Scene which contains the graph qt items and manages the communication
+        with the kernel.
 
-        Attributes:
-            parent: See QGraphicsScene
+        Attributes: See QGraphicsScene
     """
 
     def __init__(self, parent):
@@ -276,21 +306,6 @@ class SoTGraphScene(QGraphicsScene):
         self._connected_to_kernel = False
         self._dg_communication = DynamicGraphCommunication()
         self._graph = Graph(self._dg_communication)
-
-
-    def mouseReleaseEvent(self, event):
-        """ See QGraphicsScene """
-        click_pos = event.scenePos()
-        trans_matrix = self.views()[0].transform()
-        clicked_item = self.itemAt(click_pos, trans_matrix)
-
-        if clicked_item is not None:
-            graph_elem = self._graph.get_elem_per_qt_item(clicked_item)
-            if isinstance(graph_elem, Edge):
-                print(graph_elem.tail().node().name(),
-                      graph_elem.head().node().name())
-            else:
-                print(graph_elem.name())
 
 
     def is_kernel_running(self) -> bool:
@@ -327,13 +342,18 @@ class SoTGraphScene(QGraphicsScene):
         return self._dg_communication.connect_to_kernel()
 
 
+    # def add_item_to_group_creation(self, item: QGraphicsItem) -> None:
+    #     graph_elem = self._graph.get_elem_per_qt_item(item)
+    #     if isinstance(graph_elem, Edge):
+    #         print(graph_elem.tail().node().name(),
+    #                 graph_elem.head().node().name())
+    #     else:
+    #         print(graph_elem.name())
+
+
     def add_rect(self):
         print(self.sceneRect())
         self.addItem(QGraphicsRectItem(0, 0, 1000, 1000))
-
-        coords = ...
-        path = QPainterPath()
-
         print(self.sceneRect())
 
 
