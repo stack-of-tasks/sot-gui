@@ -1,3 +1,4 @@
+from typing import Union
 from enum import Enum
 import threading
 from time import sleep
@@ -8,7 +9,7 @@ from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
-from sot_gui.graph import Graph, Edge
+from sot_gui.graph import Graph, Node, Port, Edge
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -241,7 +242,18 @@ class SoTGraphView(QGraphicsView):
             return
 
         if self.interactionMode == self.InteractionMode.GROUP_CREATION:
-            self._update_selected_items(clicked_item)
+            # Only nodes can be selected: Edges are ignored, and if a Port was
+            # clicked, its Node is selected
+            selected_item = None
+            graph_elem = self.scene().get_graph_elem_per_qt_item(clicked_item)
+            if isinstance(graph_elem, Node):
+                # Selecting the Node's qt item, event if the label was clicked:
+                selected_item = graph_elem.qt_item()
+            elif isinstance(graph_elem, Port):
+                selected_item = graph_elem.node().qt_item()
+            elif isinstance(graph_elem, Edge):
+                return
+            self._update_selected_items(selected_item)
 
 
     #
@@ -267,20 +279,20 @@ class SoTGraphView(QGraphicsView):
         """ TODO """
         if self.interactionMode != self.InteractionMode.GROUP_CREATION:
             self.interactionMode = self.InteractionMode.GROUP_CREATION
-            self._selected_items = []
+            self._remove_selection()
 
 
     def _completeGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
         print(len(self._selected_items))
-        self._selected_items = []
+        self._remove_selection()
 
 
     def _cancelGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
-        self._selected_items = []
+        self._remove_selection()
 
 
     def _update_selected_items(self, item: QGraphicsItem) -> None:
@@ -291,7 +303,15 @@ class SoTGraphView(QGraphicsView):
         else:
             self._selected_items.append(item)
             item.setBrush(QColor('orange'))
-        # TODO: (un)select node if a label or port is clicked, ignore edges
+
+
+    def _remove_selection(self) -> None:
+        """ TODO """
+        for item in self._selected_items:
+            item.setBrush(QColor('white'))
+        self._selected_items = []
+
+
 
 
 class SoTGraphScene(QGraphicsScene):
@@ -349,6 +369,13 @@ class SoTGraphScene(QGraphicsScene):
     #                 graph_elem.head().node().name())
     #     else:
     #         print(graph_elem.name())
+
+
+    def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \
+        -> Union[Node, Port, Edge]:
+        """ TODO """
+        graph_elem = self._graph.get_elem_per_qt_item(item)
+        return graph_elem
 
 
     def add_rect(self):
