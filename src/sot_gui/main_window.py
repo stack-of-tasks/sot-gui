@@ -275,6 +275,7 @@ class SoTGraphScene(QGraphicsScene):
 
         Attributes: See QGraphicsScene
     """
+
     _selected_color = 'lightGray'
     _unselected_color = 'white'
 
@@ -284,7 +285,7 @@ class SoTGraphScene(QGraphicsScene):
         self._dg_communication = DynamicGraphCommunication()
         self._graph = Graph(self._dg_communication)
 
-        self._selected_items = []
+        self._selected_nodes = []
 
 
     def is_kernel_running(self) -> bool:
@@ -323,44 +324,49 @@ class SoTGraphScene(QGraphicsScene):
 
     def select_item_for_group_creation(self, item: QGraphicsItem) -> None:
         """ TODO """
-        selected_item = None
+        selected_node = None
         graph_elem = self.get_graph_elem_per_qt_item(item)
 
         if isinstance(graph_elem, Node):
-            # Getting the Node's qt item, even if its label was clicked:
-            selected_item = graph_elem.qt_item()
+            selected_node = graph_elem
 
         elif isinstance(graph_elem, Port):
-            # Getting the Port's Node's qt item:
-            selected_item = graph_elem.node().qt_item()
+            selected_node = graph_elem.node()
 
         elif isinstance(graph_elem, Edge):
             return # Edges are not selected
 
-        self._update_selected_items(selected_item)
+        self._update_selected_nodes(selected_node)
 
 
-    def _update_selected_items(self, item: QGraphicsItem) -> None:
-        """ TODO """
-        if item in self._selected_items:
-            self._selected_items.remove(item)
-            item.setBrush(QColor(self._unselected_color))
+    def _update_selected_nodes(self, node: Node) -> None:
+        """ Adds / removes a node to / from the selection.
+
+            When a node is selected, if will be colored in its entirety (label
+            cell + ports).
+
+            Args:
+                node: The node to add or remove.
+        """
+        if node in self._selected_nodes:
+            self._selected_nodes.remove(node)
+            node.qt_item().setBrush(QColor(self._unselected_color))
         else:
-            self._selected_items.append(item)
-            item.setBrush(QColor(self._selected_color))
+            self._selected_nodes.append(node)
+            node.qt_item().setBrush(QColor(self._selected_color))
 
 
     def complete_group_creation(self) -> None:
         """ TODO """
-        print(len(self._selected_items))
+        print(len(self._selected_nodes))
         self.clear_selection()
 
 
     def clear_selection(self) -> None:
         """ TODO """
-        for item in self._selected_items:
-            item.setBrush(QColor(SoTGraphScene._unselected_color))
-        self._selected_items = []
+        for node in self._selected_nodes:
+            node.qt_item().setBrush(QColor(SoTGraphScene._unselected_color))
+        self._selected_nodes = []
 
 
     def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \
