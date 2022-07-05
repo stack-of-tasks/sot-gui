@@ -4,8 +4,7 @@ import threading
 from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
-    QToolBar, QAction, QMessageBox, QLabel, QGraphicsRectItem, QGraphicsItem,
-    QGraphicsPolygonItem)
+    QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem)
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
@@ -53,21 +52,9 @@ class MainWindow(QMainWindow):
         button_reconnect.triggered.connect(self._reconnect)
         toolbar.addAction(button_reconnect)
 
-        button_reconnect = QAction("Create group", self)
-        button_reconnect.triggered.connect(self._create_entity_group)
-        toolbar.addAction(button_reconnect)
-
-        button_add_rect = QAction("Add rect", self)
-        button_add_rect.triggered.connect(self._graph_scene.add_rect)
-        toolbar.addAction(button_add_rect)
-
-        button_change_color = QAction("Change color", self)
-        button_change_color.triggered.connect(self._graph_scene.change_color)
-        toolbar.addAction(button_change_color)
-
-        button_nb_items = QAction("Print nb items", self)
-        button_nb_items.triggered.connect(self._graph_scene.print_nb_items)
-        toolbar.addAction(button_nb_items)
+        button_clusterize = QAction("Create group", self)
+        button_clusterize.triggered.connect(self._create_entity_group)
+        toolbar.addAction(button_clusterize)
 
 
     def _add_status_bar(self) -> None:
@@ -188,7 +175,9 @@ class MainWindow(QMainWindow):
 
 
 class SoTGraphView(QGraphicsView):
-    """ Inherits QGraphicsView to handle events. """
+    """ QGraphicsView which handles events to interact with the SoTGraphScene
+        items.
+    """
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -199,8 +188,6 @@ class SoTGraphView(QGraphicsView):
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         # To center the zoom on the position of the mouse:
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-
-        self._selected_items = []
 
 
     class InteractionMode(Enum):
@@ -242,18 +229,7 @@ class SoTGraphView(QGraphicsView):
             return
 
         if self.interactionMode == self.InteractionMode.GROUP_CREATION:
-            # Only nodes can be selected: Edges are ignored, and if a Port was
-            # clicked, its Node is selected
-            selected_item = None
-            graph_elem = self.scene().get_graph_elem_per_qt_item(clicked_item)
-            if isinstance(graph_elem, Node):
-                # Selecting the Node's qt item, event if the label was clicked:
-                selected_item = graph_elem.qt_item()
-            elif isinstance(graph_elem, Port):
-                selected_item = graph_elem.node().qt_item()
-            elif isinstance(graph_elem, Edge):
-                return
-            self._update_selected_items(selected_item)
+            self.scene().select_item_for_group_creation(clicked_item)
 
 
     #
@@ -279,53 +255,36 @@ class SoTGraphView(QGraphicsView):
         """ TODO """
         if self.interactionMode != self.InteractionMode.GROUP_CREATION:
             self.interactionMode = self.InteractionMode.GROUP_CREATION
-            self._remove_selection()
 
 
     def _completeGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
-        print(len(self._selected_items))
-        self._remove_selection()
+        self.scene().complete_group_creation()
 
 
     def _cancelGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
-        self._remove_selection()
-
-
-    def _update_selected_items(self, item: QGraphicsItem) -> None:
-        """ TODO """
-        if item in self._selected_items:
-            self._selected_items.remove(item)
-            item.setBrush(QColor('white'))
-        else:
-            self._selected_items.append(item)
-            item.setBrush(QColor('orange'))
-
-
-    def _remove_selection(self) -> None:
-        """ TODO """
-        for item in self._selected_items:
-            item.setBrush(QColor('white'))
-        self._selected_items = []
-
-
+        self.scene().clear_selection()
 
 
 class SoTGraphScene(QGraphicsScene):
-    """ Scene which contains the graph qt items and manages the communication
-        with the kernel.
+    """ QGraphicsScene which contains the graph qt items and manages the
+        communication with the Graph object.
 
         Attributes: See QGraphicsScene
     """
+    _selected_color = 'lightGray'
+    _unselected_color = 'white'
 
     def __init__(self, parent):
         super().__init__(parent)
         self._connected_to_kernel = False
         self._dg_communication = DynamicGraphCommunication()
         self._graph = Graph(self._dg_communication)
+
+        self._selected_items = []
 
 
     def is_kernel_running(self) -> bool:
@@ -362,13 +321,46 @@ class SoTGraphScene(QGraphicsScene):
         return self._dg_communication.connect_to_kernel()
 
 
-    # def add_item_to_group_creation(self, item: QGraphicsItem) -> None:
-    #     graph_elem = self._graph.get_elem_per_qt_item(item)
-    #     if isinstance(graph_elem, Edge):
-    #         print(graph_elem.tail().node().name(),
-    #                 graph_elem.head().node().name())
-    #     else:
-    #         print(graph_elem.name())
+    def select_item_for_group_creation(self, item: QGraphicsItem) -> None:
+        """ TODO """
+        selected_item = None
+        graph_elem = self.get_graph_elem_per_qt_item(item)
+
+        if isinstance(graph_elem, Node):
+            # Getting the Node's qt item, even if its label was clicked:
+            selected_item = graph_elem.qt_item()
+
+        elif isinstance(graph_elem, Port):
+            # Getting the Port's Node's qt item:
+            selected_item = graph_elem.node().qt_item()
+
+        elif isinstance(graph_elem, Edge):
+            return # Edges are not selected
+
+        self._update_selected_items(selected_item)
+
+
+    def _update_selected_items(self, item: QGraphicsItem) -> None:
+        """ TODO """
+        if item in self._selected_items:
+            self._selected_items.remove(item)
+            item.setBrush(QColor(self._unselected_color))
+        else:
+            self._selected_items.append(item)
+            item.setBrush(QColor(self._selected_color))
+
+
+    def complete_group_creation(self) -> None:
+        """ TODO """
+        print(len(self._selected_items))
+        self.clear_selection()
+
+
+    def clear_selection(self) -> None:
+        """ TODO """
+        for item in self._selected_items:
+            item.setBrush(QColor(SoTGraphScene._unselected_color))
+        self._selected_items = []
 
 
     def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \
@@ -376,21 +368,3 @@ class SoTGraphScene(QGraphicsScene):
         """ TODO """
         graph_elem = self._graph.get_elem_per_qt_item(item)
         return graph_elem
-
-
-    def add_rect(self):
-        print(self.sceneRect())
-        self.addItem(QGraphicsRectItem(0, 0, 1000, 1000))
-        print(self.sceneRect())
-
-
-    def change_color(self):
-        items = self.items()
-        for item in items:
-            if isinstance(item, QGraphicsPolygonItem):
-                item.setBrush(QColor('orange'))
-
-
-    def print_nb_items(self):
-        items = self.items()
-        print(len(items))
