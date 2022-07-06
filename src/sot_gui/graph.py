@@ -82,15 +82,14 @@ class Node:
 
 
 class InputNode(Node):
-    _input_node_count = 0
 
     def __init__(self, output_edge: Edge):
-        # TODO: generate name with name of child node + corresponding plug?
         self._qt_item = None
         self._type = output_edge.value_type()
 
-        self._name = f"InputNode{InputNode._input_node_count}"
-        InputNode._input_node_count += 1
+        child_port_name = output_edge.head().name()
+        child_node_name = output_edge.head().node().name()
+        self._name = f"input_{child_node_name}_{child_port_name}"
 
         output_port = Port("sout0", 'output', self)
         output_port.set_edge(output_edge)
@@ -205,7 +204,7 @@ class Graph:
 
     def _get_entities_labels_config(self) -> Dict[str, str]:
         """ Returns a dictionary containing which labels to use for entity
-            types we want to label in a specific way. 
+            types we want to label in a specific way.
             This configuration can be modified in entities_labels_config.py.
         """
         try:
@@ -287,7 +286,7 @@ class Graph:
         sig_name = plug_info['name']
         child_node_name = child_node.name()
 
-        # Getting the description of the plug this signal is plugged to, 
+        # Getting the description of the plug this signal is plugged to,
         # i.e an output signal of the parent entity:
         is_plugged = self._dg_communication.is_signal_plugged(child_node_name, sig_name)
         if not is_plugged:
@@ -406,7 +405,7 @@ class Graph:
             label = self._generate_entity_node_label(entity)
 
             dot_generator.add_html_node(entity.name(), (inputs, outputs), label)
-            
+
 
     def _generate_entity_node_label(self, node: EntityNode) -> str:
         """ Generates a label to display on the node, according to its known
@@ -454,7 +453,7 @@ class Graph:
                     tail = (parent_node_name, None, 'output')
 
                 head = (entity.name(), edge.head().name(), edge.head().type())
-                
+
                 dot_generator.add_edge(tail, head, attributes)
 
 
@@ -504,7 +503,7 @@ class Graph:
                     continue
                 head_name = edge.head().node().name()
                 tail_name = edge.tail().node().name()
-                
+
                 qt_item_edge = qt_generator.get_qt_item_for_edge(head_name,
                                                                  tail_name)
                 edge.set_qt_item(qt_item_edge)
@@ -540,7 +539,7 @@ class Graph:
 
     def get_elem_per_qt_item(self, qt_item: QGraphicsItem) \
                              -> Union[Node, Port, Edge]:
-        
+
         # Getting the parent item (e.g if item is a port's label, we must use
         # its parent, which is the outline of the cell)
         item = qt_item
@@ -550,7 +549,7 @@ class Graph:
         for node in self._dg_entities + self._input_nodes:
             if node.qt_item() == item:
                 return node
-            
+
             if isinstance(node, InputNode):
                 continue
 
@@ -561,5 +560,5 @@ class Graph:
                 edge = port.edge()
                 if edge is not None and edge.qt_item() == item:
                     return edge
-        
+
         return None
