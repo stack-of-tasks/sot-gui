@@ -373,8 +373,11 @@ class SoTGraphScene(QGraphicsScene):
 
     def complete_group_creation(self, group_name: str) -> None:
         """ TODO """
-        print(len(self._selected_nodes), group_name)
-        self.clear_selection()
+        if self._graph.add_cluster(group_name, self._selected_nodes.copy()):
+            self.clear_selection()
+        else:
+            print('Clusterization not possible')
+            self.clear_selection()
 
 
     def clear_selection(self) -> None:

@@ -1,5 +1,5 @@
 from __future__ import annotations # To prevent circular dependencies of typing
-from typing import List, Any, Dict, Union
+from typing import List, Any, Dict, Union, Tuple
 from subprocess import Popen, PIPE
 from copy import deepcopy
 
@@ -12,10 +12,11 @@ from sot_gui.utils import quoted
 
 
 class Node:
-    """  """
+    """ TODO """
     def __init__(self):
         self._name: str = None
         self._type: str = None
+        self._cluster: Cluster = None
         self._inputs: List[Port] = None
         self._outputs: List[Port] = None
         self._qt_item: QGraphicsItem = None
@@ -37,16 +38,34 @@ class Node:
         self._qt_item = qt_item
 
 
+    def cluster(self) -> Cluster:
+        return self._cluster
+    def set_cluster(self, cluster: Cluster) -> None:
+        self._cluster = cluster
+
+
     def inputs(self) -> List[Port]:
         if self._inputs is not None:
             return self._inputs.copy()
         return []
-
-
     def outputs(self) -> List[Port]:
         if self._outputs is not None:
             return self._outputs.copy()
         return []
+
+    def parent_nodes(self) -> List[Node]:
+        parents = []
+        for input in self.inputs():
+            if input.node() is not None:
+                parents.append(input.node())
+        return parents
+
+    def child_nodes(self) -> List[Node]:
+        children = []
+        for output in self.outputs():
+            if output.node() is not None:
+                children.append(output.node())
+        return children
 
 
     def ports(self) -> List[Port]:
@@ -82,10 +101,14 @@ class Node:
 
 
 class InputNode(Node):
+    """ TODO """
 
     def __init__(self, output_edge: Edge):
+        super().__init__()
+
         self._qt_item = None
         self._type = output_edge.value_type()
+        self._cluster = None
 
         child_port_name = output_edge.head().name()
         child_node_name = output_edge.head().node().name()
@@ -97,15 +120,39 @@ class InputNode(Node):
 
 
 class EntityNode(Node):
+    """ TODO """
     def __init__(self, name: str, type: str = None):
+        super().__init__()
         self._name = name
         self._type = type
+        self._cluster = None
         self._inputs = []
         self._outputs = []
         self._qt_item = None
 
 
+class Cluster(Node):
+    """ TODO """
+    def __init__(self, name: str, nodes: List[Node]):
+        super().__init__()
+        self._name: str = name
+        self._nodes: List[Node] = nodes
+        self._expanded: bool = False
+        self._qt_item: QGraphicsItem = None
+
+        self._inputs: List[Tuple[Port, QGraphicsItem]] = []
+        self._outputs: List[Tuple[Port, QGraphicsItem]] = []
+        for node in self._nodes:
+            node.set_cluster(self)
+            for port in node.ports():
+                if port.type == 'input':
+                    self._inputs.append((port, None))
+                else:
+                    self._outputs.append((port, None))
+
+
 class Port:
+    """ TODO """
     def __init__(self, name: str, type: str, node: Node):
         self._qt_item: QGraphicsItem = None
         self._edge = None
@@ -145,6 +192,7 @@ class Port:
 
 
 class Edge:
+    """ TODO """
     def __init__(self, value: Any = None, value_type: str = None,
                 head: Port = None, tail: Port = None):
         self._qt_item: QGraphicsItem = None
@@ -198,6 +246,8 @@ class Graph:
         self._dg_entities: List[EntityNode] = []
         # Input nodes that don't exist in the dynamic graph:
         self._input_nodes: List[InputNode] = []
+        # Clusters of nodes created by the user:
+        self._clusters: List[Cluster] = []
         # Information about the graph as a whole (name, dimensions, background color...):
         self._graph_info: Dict[str, Any] = {}
 
@@ -233,6 +283,50 @@ class Graph:
         self._clear_dg_data()
         self._get_dg_data()
         self._generate_qt_items()
+
+
+    def add_cluster(self, name: str, nodes: List[Node]) -> bool:
+        """ Adds a cluster to the graph.
+
+            Returns: True if the cluster was successfully created, False if not.
+        """
+        if self._check_clusterizability(nodes) is True:
+            new_cluster = Cluster(name, nodes)
+            self._clusters.append(new_cluster)
+            return True
+        return False
+
+
+    def _check_clusterizability(self, nodes: List[Node]) -> bool:
+        """ Returns True if a Cluster object can be contructed from the given
+            list of Nodes.
+
+            The requirements are:
+                - more than one node
+                - only direclty linked nodes (every node can be accessed from
+                  any other node by going through inputs or outputs)
+        """
+        for node in nodes:
+            print(node.name())
+
+        if len(nodes) < 2:
+            return False
+
+        # For each node, we check if at least one of its parents or children is
+        # in the list:
+        def _nodes_are_linked(node1: Node, node2: Node) -> bool:
+            return node1 in (node2.parent_nodes() + node2.child_nodes())
+
+        for node_to_check in nodes:
+            node_ok = False # Is this node directly linked to any other node?
+            for node in nodes:
+                if _nodes_are_linked(node_to_check, node):
+                    node_ok = True
+                    continue
+            if not node_ok:
+                return False
+
+        return True
 
 
     #
