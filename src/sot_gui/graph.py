@@ -82,15 +82,14 @@ class Node:
 
 
 class InputNode(Node):
-    _input_node_count = 0
 
     def __init__(self, output_edge: Edge):
-        # TODO: generate name with name of child node + corresponding plug?
         self._qt_item = None
         self._type = output_edge.value_type()
 
-        self._name = f"InputNode{InputNode._input_node_count}"
-        InputNode._input_node_count += 1
+        child_port_name = output_edge.head().name()
+        child_node_name = output_edge.head().node().name()
+        self._name = f"input_{child_node_name}_{child_port_name}"
 
         output_port = Port("sout0", 'output', self)
         output_port.set_edge(output_edge)
