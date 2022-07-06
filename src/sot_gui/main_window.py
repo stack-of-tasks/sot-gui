@@ -147,6 +147,7 @@ class MainWindow(QMainWindow):
             If they click yes, a new graph refresh will be attempted after the
             reconnection.
         """
+        self._cancel_ongoing_actions()
         if self._reconnection_needed:
             self._message_box_no_connection(refresh=True)
         else:
@@ -163,6 +164,7 @@ class MainWindow(QMainWindow):
             If there is no running kernel, a message box is opened to alert the
             user and let them launch one before re-attempting a connection.
         """
+        self._cancel_ongoing_actions()
         if self._graph_scene.reconnect():
             self._reconnection_needed = False
         else:
@@ -172,6 +174,13 @@ class MainWindow(QMainWindow):
     def _create_entity_group(self) -> None:
         """ Launches the creation of an entity group. """
         self._view.launch_group_creation()
+
+
+    def _cancel_ongoing_actions(self) -> None:
+        """ TODO """
+        if (self._view.interactionMode ==
+            SoTGraphView.InteractionMode.GROUP_CREATION):
+            self._view.cancelGroupCreation()
 
 
 class SoTGraphView(QGraphicsView):
@@ -218,7 +227,7 @@ class SoTGraphView(QGraphicsView):
             if key == Qt.Key_Enter or key == Qt.Key_Return:
                 self._completeGroupCreation()
             elif key == Qt.Key_Escape:
-                self._cancelGroupCreation()
+                self.cancelGroupCreation()
 
 
     def mouseReleaseEvent(self, event):
@@ -266,10 +275,10 @@ class SoTGraphView(QGraphicsView):
         if clicked_ok:
             self.scene().complete_group_creation(group_name)
         else:
-            self._cancelGroupCreation()
+            self.cancelGroupCreation()
 
 
-    def _cancelGroupCreation(self) -> None:
+    def cancelGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
         self.scene().clear_selection()
