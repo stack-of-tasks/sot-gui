@@ -8,7 +8,7 @@ from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
-from sot_gui.graph import Graph, Node, Port, Edge
+from sot_gui.graph import Graph, Node, Port, Edge, EntityNode, InputNode
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -327,14 +327,15 @@ class SoTGraphScene(QGraphicsScene):
         selected_node = None
         graph_elem = self.get_graph_elem_per_qt_item(item)
 
-        if isinstance(graph_elem, Node):
+        if isinstance(graph_elem, EntityNode):
             selected_node = graph_elem
 
         elif isinstance(graph_elem, Port):
             selected_node = graph_elem.node()
 
-        elif isinstance(graph_elem, Edge):
-            return # Edges are not selected
+        elif isinstance(graph_elem, InputNode) or isinstance(graph_elem, Edge):
+            # InputNodes and Edges are not selected
+            return
 
         self._update_selected_nodes(selected_node)
 
@@ -350,10 +351,10 @@ class SoTGraphScene(QGraphicsScene):
         """
         if node in self._selected_nodes:
             self._selected_nodes.remove(node)
-            node.qt_item().setBrush(QColor(self._unselected_color))
+            self._update_color_selected_node(node, False)
         else:
             self._selected_nodes.append(node)
-            node.qt_item().setBrush(QColor(self._selected_color))
+            self._update_color_selected_node(node, True)
 
 
     def complete_group_creation(self) -> None:
@@ -365,8 +366,24 @@ class SoTGraphScene(QGraphicsScene):
     def clear_selection(self) -> None:
         """ TODO """
         for node in self._selected_nodes:
-            node.qt_item().setBrush(QColor(SoTGraphScene._unselected_color))
+            self._update_color_selected_node(node, False)
         self._selected_nodes = []
+
+
+    def _update_color_selected_node(self, node: Node, selected: bool) -> None:
+        """ Changes a node's color (middle column + ports) depending on its
+            selection status.
+
+            Args:
+                node: The node whose color will be updated.
+                selected: If True (respectively if False), the node's color will
+                    be updated to make it appear selected (respectively
+                    unselected).
+        """
+        new_color = self._selected_color if selected else self._unselected_color
+        node.qt_item().setBrush(QColor(new_color))
+        for port in node.ports():
+            port.qt_item().setBrush(QColor(new_color))
 
 
     def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \
