@@ -4,7 +4,7 @@ import threading
 from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
-    QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem)
+    QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog)
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
@@ -260,7 +260,13 @@ class SoTGraphView(QGraphicsView):
     def _completeGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
-        self.scene().complete_group_creation()
+        group_name, clicked_ok = QInputDialog().getText(self, 'Group name',
+                                'Please enter a name for this entity group.')
+
+        if clicked_ok:
+            self.scene().complete_group_creation(group_name)
+        else:
+            self._cancelGroupCreation()
 
 
     def _cancelGroupCreation(self) -> None:
@@ -357,9 +363,9 @@ class SoTGraphScene(QGraphicsScene):
             self._update_color_selected_node(node, True)
 
 
-    def complete_group_creation(self) -> None:
+    def complete_group_creation(self, group_name: str) -> None:
         """ TODO """
-        print(len(self._selected_nodes))
+        print(len(self._selected_nodes), group_name)
         self.clear_selection()
 
 
