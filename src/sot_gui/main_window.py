@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
                 refresh: if True, the graph will be refreshed after the
                     connection attempt, if it was successful.
         """
-        message_box = QMessageBox(self.parent())
+        message_box = QMessageBox(self)
         message_box.setWindowTitle("No connection")
 
         # Asking the user if they want to reconnect and refresh:
