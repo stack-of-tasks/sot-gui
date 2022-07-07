@@ -140,15 +140,44 @@ class Cluster(Node):
         self._expanded: bool = False
         self._qt_item: QGraphicsItem = None
 
+        # The cluster's ports are its nodes' ports that are not linked to a node
+        # in the same cluster
         self._inputs: List[Tuple[Port, QGraphicsItem]] = []
         self._outputs: List[Tuple[Port, QGraphicsItem]] = []
         for node in self._nodes:
             node.set_cluster(self)
+
             for port in node.ports():
-                if port.type == 'input':
+                if self.is_port_internal(port):
+                    continue
+                if port.type() == 'input':
                     self._inputs.append((port, None))
                 else:
                     self._outputs.append((port, None))
+
+
+    def is_port_internal(self, port: Port) -> bool:
+        """ Returns True if the port is internal, i.e if the node it belongs to
+            and the node it is plugged to both belong to this cluster.
+
+            If the port is not plugged to any node, it is considered external.
+        """
+        cluster_nodes = self.nodes()
+
+        if port.node() not in cluster_nodes:
+            return False
+
+        plugged_node = port.plugged_node() # Node plugged to this port
+        if plugged_node is None:
+            return False
+        return plugged_node in cluster_nodes
+
+
+    def nodes(self) -> List[Node]:
+        return self._nodes.copy()
+
+    def is_expanded(self) -> bool:
+        return self._expanded
 
 
 class Port:
@@ -179,9 +208,9 @@ class Port:
         return self._node
 
 
-    def edge(self) -> str:
+    def edge(self) -> Edge:
         return self._edge
-    def set_edge(self, edge: Edge) -> str:
+    def set_edge(self, edge: Edge) -> None:
         self._edge = edge
         if self._type == 'input':
             edge.set_head(self)
@@ -189,6 +218,16 @@ class Port:
             edge.set_tail(self)
         else:
             raise ValueError("Port type must be either 'input' or 'output'")
+
+
+    def plugged_node(self) -> Node:
+        edge = self.edge()
+        if edge is not None:
+            if self.type() == 'input':
+                return edge.tail_node()
+            else:
+                return edge.head_node()
+        return None
 
 
 class Edge:
@@ -228,6 +267,19 @@ class Edge:
         return self._tail
     def set_tail(self, tail: Port) -> None:
         self._tail = tail
+
+    def tail_node(self) -> Node:
+        tail_port = self.tail()
+        if tail_port is not None:
+            return tail_port.node()
+        return None
+
+    def head_node(self) -> Node:
+        head_port = self.head()
+        if head_port is not None:
+            return head_port.node()
+        return None
+
 
 
 class Graph:
