@@ -183,22 +183,22 @@ class DotDataGenerator:
         return rows_html
 
 
-    def add_edge(self, tail: Tuple[str, str, str], head: Tuple[str, str, str],
+    def add_edge(self, tail: Tuple[str, str], head: Tuple[str, str],
                  attributes: Dict[str, Any] = None) -> None:
         """ Adds an edge to the graph, with optional attributes.
 
         Args:
-            tail: tuple containing the tail data: (node name, port name,
-                port type). The port name can be None.
-            head: tuple containing the head data: (node name, port name,
-                port type). The port name can be None.
+            tail: tuple containing the tail data: (node name, port name).
+                The port name can be None.
+            head: tuple containing the head data: (node name, port name).
+                The port name can be None.
             attributes: A dictionary containing the attributes of the edge.
                 The keys and values are in the same form as in dot code (e.g
                 `attributes['color'] = 'red'` corresponds to `color=red` in dot.
         """
 
-        tail_node, tail_port, tail_type = tail
-        head_node, head_port, head_type = head
+        tail_node, tail_port = tail
+        head_node, head_port = head
 
         # The head and tail are in the form: `node:port`, or simply `node` if
         # no port is specified.
@@ -212,10 +212,8 @@ class DotDataGenerator:
         # If the edge's tip (head or tail) is an output, we add ':e' so the
         # edge is bound to the east of the output (be it a port or a node). If
         # it's an input, we add 'w' for 'west'.
-        def _get_edge_tip_placement(port_type):
-            return ':w' if port_type == 'input' else ':e'
-        tail_str += _get_edge_tip_placement(tail_type)
-        head_str += _get_edge_tip_placement(head_type)
+        tail_str += ':e'
+        head_str += ':w'
 
         new_line = f"\t{tail_str} -> {head_str}"
         if attributes is not None:

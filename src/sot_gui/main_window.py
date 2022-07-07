@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
 
     def _create_entity_group(self) -> None:
         """ Launches the creation of an entity group. """
-        self._view.launch_group_creation()
+        self._view.enter_group_creation_mode()
 
 
     def _cancel_ongoing_actions(self) -> None:
@@ -274,11 +274,16 @@ class SoTGraphView(QGraphicsView):
             self.scale(0.8, 0.8)
 
 
-    def launch_group_creation(self) -> None:
+    def enter_group_creation_mode(self) -> None:
         """ TODO """
         if self.interactionMode != self.InteractionMode.GROUP_CREATION:
             self.parent().show_cluster_toolbar()
             self.interactionMode = self.InteractionMode.GROUP_CREATION
+    def exit_group_creation_mode(self) -> None:
+        """ TODO """
+        self.interactionMode = self.InteractionMode.DEFAULT
+        self.parent().hide_cluster_toolbar()
+        self.scene().clear_selection()
 
 
     def _completeGroupCreation(self) -> None:
@@ -293,18 +298,16 @@ class SoTGraphView(QGraphicsView):
         group_name, clicked_ok = QInputDialog().getText(self, 'Group name',
                                 'Please enter a name for this entity group.')
 
-         # If the user cancelled, we let them keep on selecting
         if clicked_ok:
-            self.interactionMode = self.InteractionMode.DEFAULT
             self.scene().complete_group_creation(group_name)
-            self.parent().hide_cluster_toolbar()
+            self.exit_group_creation_mode()
+        # If the user cancelled, we let them keep on selecting
 
 
     def cancelGroupCreation(self) -> None:
         """ TODO """
-        self.interactionMode = self.InteractionMode.DEFAULT
-        self.scene().clear_selection()
-        self.parent().hide_cluster_toolbar()
+        self.exit_group_creation_mode()
+
 
 
     def _message_box_wrong_cluster(self) -> None:
@@ -351,6 +354,17 @@ class SoTGraphScene(QGraphicsScene):
         return self._dg_communication.is_kernel_alive()
 
 
+    def update_display(self) -> None:
+        """ Updates the graph display. New graph data will not be fetched from
+            the kernel.
+        """
+        self._graph.generate_qt_items()
+        self.clear()
+        self._items = self._graph.get_qt_items()
+        for item in self._items:
+            self.addItem(item)
+
+
     def refresh(self) -> None:
         """ Refreshes the graph. New graph data will be fetched from the kernel
             and displayed.
@@ -359,11 +373,8 @@ class SoTGraphScene(QGraphicsScene):
             ConnectionError: the kernel is not running.
         """
 
-        self._graph.refresh_graph()
-        self.clear()
-        self._items = self._graph.get_qt_items()
-        for item in self._items:
-            self.addItem(item)
+        self._graph.refresh_graph_data()
+        self.update_display()
 
 
     def reconnect(self) -> bool:
@@ -413,7 +424,7 @@ class SoTGraphScene(QGraphicsScene):
         """ TODO """
 
         self._graph.add_cluster(group_name, self._selected_nodes.copy())
-        self.clear_selection()
+        self.update_display()
         print('Clusterization complete')
 
 

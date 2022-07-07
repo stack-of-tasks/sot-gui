@@ -4,6 +4,7 @@ from subprocess import Popen, PIPE
 from copy import deepcopy
 
 from PySide2.QtWidgets import QGraphicsItem
+from numpy import isin
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 from sot_gui.dot_data_generator import DotDataGenerator
@@ -11,14 +12,10 @@ from sot_gui.json_to_qt_generator import JsonToQtGenerator
 from sot_gui.utils import quoted
 
 
-class Node:
-    """ TODO """
+class GraphElement:
     def __init__(self):
         self._name: str = None
         self._type: str = None
-        self._cluster: Cluster = None
-        self._inputs: List[Port] = None
-        self._outputs: List[Port] = None
         self._qt_item: QGraphicsItem = None
 
 
@@ -36,6 +33,15 @@ class Node:
         return self._qt_item
     def set_qt_item(self, qt_item: QGraphicsItem) -> None:
         self._qt_item = qt_item
+
+
+class Node(GraphElement):
+    """ TODO """
+    def __init__(self):
+        super().__init__()
+        self._cluster: Cluster = None
+        self._inputs: List[Port] = None
+        self._outputs: List[Port] = None
 
 
     def cluster(self) -> Cluster:
@@ -87,13 +93,13 @@ class Node:
 
 
     def set_edge_for_port(self, edge: Edge, port_name: str) -> None:
-        port = self._get_port_per_name(port_name)
+        port = self.get_port_per_name(port_name)
         if port is None:
             raise ValueError(f"Port {port_name} of node {self._name} does not exist.")
         port.set_edge(edge)
 
 
-    def _get_port_per_name(self, name: str) -> Port | None:
+    def get_port_per_name(self, name: str) -> Port | None:
         for port in self._inputs + self._outputs:
             if port.name() == name:
                 return port
@@ -106,7 +112,6 @@ class InputNode(Node):
     def __init__(self, output_edge: Edge):
         super().__init__()
 
-        self._qt_item = None
         self._type = output_edge.value_type()
         self._cluster = None
 
@@ -128,11 +133,11 @@ class EntityNode(Node):
         self._cluster = None
         self._inputs = []
         self._outputs = []
-        self._qt_item = None
 
 
 class Cluster(Node):
     """ TODO """
+
     def __init__(self, name: str, nodes: List[Node]):
         super().__init__()
         self._name: str = name
@@ -142,8 +147,8 @@ class Cluster(Node):
 
         # The cluster's ports are its nodes' ports that are not linked to a node
         # in the same cluster
-        self._inputs: List[Tuple[Port, QGraphicsItem]] = []
-        self._outputs: List[Tuple[Port, QGraphicsItem]] = []
+        self._inputs: List[ClusterPort] = []
+        self._outputs: List[ClusterPort] = []
         for node in self._nodes:
             node.set_cluster(self)
 
@@ -151,9 +156,9 @@ class Cluster(Node):
                 if self.is_port_internal(port):
                     continue
                 if port.type() == 'input':
-                    self._inputs.append((port, None))
+                    self._inputs.append(ClusterPort(port))
                 else:
-                    self._outputs.append((port, None))
+                    self._outputs.append(ClusterPort(port))
 
 
     def is_port_internal(self, port: Port) -> bool:
@@ -179,32 +184,24 @@ class Cluster(Node):
     def is_expanded(self) -> bool:
         return self._expanded
 
+    def get_cluster_port_per_node_port(self, port: Port) -> ClusterPort | None:
+        for cluster_port in self.ports():
+            if cluster_port.node_port() == port:
+                return cluster_port
+        return None
 
-class Port:
+
+class Port(GraphElement):
     """ TODO """
     def __init__(self, name: str, type: str, node: Node):
-        self._qt_item: QGraphicsItem = None
+        super().__init__()
         self._edge = None
         self._name = name
         self._type = type # 'input' or 'output'
         self._node = node
 
 
-    def name(self) -> str:
-        return self._name
-
-
-    def type(self) -> str:
-        return self._type
-
-
-    def qt_item(self) -> QGraphicsItem:
-        return self._qt_item
-    def set_qt_item(self, qt_item: QGraphicsItem) -> None:
-        self._qt_item = qt_item
-
-
-    def node(self) -> str:
+    def node(self) -> Node:
         return self._node
 
 
@@ -230,11 +227,23 @@ class Port:
         return None
 
 
-class Edge:
+class ClusterPort(Port):
+    def __init__(self, node_port: Port):
+        super().__init__(None, None, None)
+        self._name = f"{node_port.node().name()}({node_port.name()})"
+        self._type = node_port.type()
+        self._edge = node_port.edge()
+        self._node_port: Port = node_port
+
+    def node_port(self) -> Port:
+        return self._node_port
+
+
+class Edge(GraphElement):
     """ TODO """
     def __init__(self, value: Any = None, value_type: str = None,
                 head: Port = None, tail: Port = None):
-        self._qt_item: QGraphicsItem = None
+        super().__init__()
         self._value = value
         self._value_type = value_type
         self._head = head
@@ -249,12 +258,6 @@ class Edge:
         return self._value_type
     def set_value_type(self, value_type: str) -> None:
         self._value_type = value_type
-
-
-    def qt_item(self) -> QGraphicsItem:
-        return self._qt_item
-    def set_qt_item(self, qt_item: QGraphicsItem) -> None:
-        self._qt_item = qt_item
 
 
     def head(self) -> Port:
@@ -279,7 +282,6 @@ class Edge:
         if head_port is not None:
             return head_port.node()
         return None
-
 
 
 class Graph:
@@ -320,6 +322,12 @@ class Graph:
         return deepcopy(self._graph_info)
 
 
+    def shrinked_clusters(self) -> List[Cluster]:
+        return [clust for clust in self._clusters if not clust.is_expanded()]
+    def expanded_clusters(self) -> List[Cluster]:
+        return [clust for clust in self._clusters if clust.is_expanded()]
+
+
     def _get_node_per_name(self, name: str) -> Node | None:
         for node in self._dg_entities + self._input_nodes:
             if node.name() == name:
@@ -327,14 +335,13 @@ class Graph:
         return None
 
 
-    def refresh_graph(self):
+    def refresh_graph_data(self):
         """ This function updates the graph by fetching the dynamic graph's data,
             generating a new graph layout with dot and creating the needed qt items.
             Raises a ConnectionError if there is no connection to the kernel.
         """
         self._clear_dg_data()
         self._get_dg_data()
-        self._generate_qt_items()
 
 
     def add_cluster(self, name: str, nodes: List[Node]) -> None:
@@ -487,6 +494,7 @@ class Graph:
         """ Resets all the information on nodes, ports and edges and their qt items. """
         self._dg_entities = []
         self._input_nodes = []
+        self._clusters = []
         self._graph_info = {}
 
 
@@ -507,6 +515,7 @@ class Graph:
         # Adding the nodes and their ports (if needed), and then the edges:
         self._add_input_nodes_to_dot_code(dot_generator)
         self._add_entity_nodes_to_dot_code(dot_generator)
+        self._add_clusters_to_dot_code(dot_generator)
         self._add_edges_to_dot_code(dot_generator)
 
         return dot_generator.get_encoded_dot_string()
@@ -571,37 +580,65 @@ class Graph:
         return f"{node_type}({node_name})"
 
 
-    # def _add_clusters_to_dot_code(self, dot_generator: DotDataGenerator) \
-    #                               -> None:
-    #     """ Adds a cluster to the given dot data generator.
+    def _add_clusters_to_dot_code(self, dot_generator: DotDataGenerator) \
+                                  -> None:
+        """ Adds a cluster to the given dot data generator.
 
-    #         The cluster will be added as a subgraph if it is expanded. Else, it
-    #         will be added as an html node.
-    #     """
-    #     for cluster in self._clusters:
-    #         if cluster.is_expanded():
-    #             raise NotImplementedError
-    #         else:
-    #             name = cluster.name()
-    #             dot_generator.add_html_node(name, (inputs, outputs), name)
+            The cluster will be added as a subgraph if it is expanded. Else, it
+            will be added as an html node.
+        """
+        for cluster in self._clusters:
+            if cluster.is_expanded():
+                raise NotImplementedError
+            else:
+                inputs = [port.name() for port in cluster.inputs()]
+                outputs = [port.name() for port in cluster.outputs()]
+                name = cluster.name()
+                dot_generator.add_html_node(name, (inputs, outputs), name)
 
 
     def _add_edges_to_dot_code(self, dot_generator: DotDataGenerator):
         """ Adds all of the graph's edges to the given dot data generator. """
 
         # We only handle input edges so as to not add an edge twice: only entity
-        # nodes can have inputs, and they cannot have outputs.
-        for entity in self._dg_entities:
-            input_edges = [ port.edge() for port in entity.inputs() ]
+        # nodes and clusters can have inputs, and there is no final output
+        # displayed
+        for node in self._dg_entities + self.shrinked_clusters():
+
+            # If the node is in a cluster, we ignore it as the cluster will be
+            # handled later
+            if node.cluster() is not None:
+                continue
+
+            input_edges = []
+            if isinstance(node, Cluster):
+                input_edges = [port.edge() for port in node.inputs()]
+            else:
+                input_edges = [port.edge() for port in node.inputs()]
 
             for edge in input_edges:
                 if edge is None: # If that port is not plugged to a signal
                     continue
 
-                # Node whose output is linked this input via this signal:
+                # Port / node whose output is linked this input via this signal:
                 parent_port = edge.tail()
+                if isinstance(node, Cluster):
+                    parent_port = node.get_cluster_port_per_node_port(
+                                  parent_port)
                 parent_node = parent_port.node()
-                parent_node_name = parent_node.name()
+                parent_node_name, parent_port_name = None, None
+
+                # If the parent node is in a shrinked cluster, we plug the edge
+                # to the cluster port corresponding to this node port:
+                parent_cluster = parent_node.cluster()
+                if parent_cluster is not None:
+                    parent_port = parent_cluster.get_cluster_port_per_node_port(
+                                  parent_port)
+                    parent_port_name = parent_port.name()
+                    parent_node_name = parent_cluster.name()
+                else:
+                    parent_port_name = parent_port.name()
+                    parent_node_name = parent_node.name()
 
                 # The value is displayed only if the parent node isn't an InputNode:
                 attributes = None
@@ -610,13 +647,12 @@ class Graph:
 
                 # The tail's port will not be displayed if the parent node is an
                 # input value
-                if isinstance(parent_node, EntityNode):
-                    tail = (parent_node_name, parent_port.name(),
-                            parent_port.type())
+                if isinstance(parent_node, InputNode):
+                    tail = (parent_node_name, None)
                 else:
-                    tail = (parent_node_name, None, 'output')
+                    tail = (parent_node_name, parent_port_name)
 
-                head = (entity.name(), edge.head().name(), edge.head().type())
+                head = (node.name(), edge.head().name())
 
                 dot_generator.add_edge(tail, head, attributes)
 
@@ -625,13 +661,13 @@ class Graph:
     # QT ITEMS GENERATION
     #
 
-    def _generate_qt_items(self) -> None:
+    def generate_qt_items(self) -> None:
         """ For each Node, Port and Edge, this function generates the
             corresponding list of qt items and stores it as their `_qt_item`
             attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
-        #print(encoded_dot_code.decode())
+        print(encoded_dot_code.decode())
 
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE,
                    stderr=PIPE).communicate(encoded_dot_code)
@@ -640,7 +676,12 @@ class Graph:
         qt_generator = JsonToQtGenerator(out.decode('utf-8'))
         # For every node, we get its qt item (as a parent item containing the
         # other items):
-        for node in self._input_nodes + self._dg_entities:
+        for node in self._input_nodes + self._dg_entities + self._clusters:
+
+            # If the node is in a cluster, we ignore it as the cluster will be
+            # handled later
+            if node.cluster() is not None:
+                continue
 
             # If it's an InputNode, only qt items for the node are needed (its
             # ports are not displayed and they have no input edges)
@@ -649,13 +690,19 @@ class Graph:
                 node.set_qt_item(qt_item_node)
                 continue
 
-            # If it's an EntityNode, the qt item corresponding to the node is
-            # middle column of the html table (i.e the node's label)
-            qt_item_node = qt_generator.get_qt_item_for_node(node.name())
-            node.set_qt_item(qt_item_node)
+            # If it's an EntityNode or a shrinked Clue=ster, the qt item
+            # corresponding to the node is middle column of the html table
+            # (i.e the node's label)
+            if not (isinstance(node, Cluster) and node.is_expanded == True):
+                qt_item_node = qt_generator.get_qt_item_for_node(node.name())
+                node.set_qt_item(qt_item_node)
 
             # Getting the qt items for each of the EntityNode's ports and edges:
-            for port in node.ports():
+            if isinstance(node, Cluster):
+                ports = [port.node_port() for port in node.ports()]
+            else:
+                ports = node.ports()
+            for port in ports:
                 qt_item_port = qt_generator.get_qt_item_for_port(node.name(),
                                                                  port.name())
                 port.set_qt_item(qt_item_port)

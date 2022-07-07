@@ -63,8 +63,8 @@ class JsonParsingUtils:
     T_POLYLINE = ['L']
 
 
-    def get_data_by_key_value(dict_list: List[Dict], key: str, values: Union[Any, List[Any]]) \
-            -> Dict:
+    def get_data_by_key_value(dict_list: List[Dict], key: str,
+                                values: Union[Any, List[Any]]) -> Dict:
         """ From the dictionary list, returns the first one whose key/value pair corresponds
             to the given arguments, or None if none was found. `values` can be a single element
             or a list of possible values.
@@ -151,7 +151,7 @@ class JsonToQtGenerator:
         if node_data is None:
             raise ValueError(f"Node {node_name} could not be found in dot's"
                              " json output.")
-        
+
         if node_data.get(j.STYLE) == 'invis': # If the node is invisible
             return None
 
@@ -160,7 +160,7 @@ class JsonToQtGenerator:
         # the qt items for its body are the middle column's only cell and its
         # label, as the other columns correspond to the node's ports.
         qt_item_body = None
-        
+
         # Html tables have no 'drawing body' data section. All info is found in
         # the 'drawing label' section.
         if j.BODY_DRAW in node_data: # Non-html case
@@ -173,7 +173,7 @@ class JsonToQtGenerator:
         else: # Html case
             node_cells_data = self._html_nodes_data[node_name]
             # During the dot code generation, the middle cell is created 2nd:
-            (outline_data, label_data) = node_cells_data[1] 
+            (outline_data, label_data) = node_cells_data[1]
             qt_item_body = self._get_html_cell(outline_data, label_data)
 
         return qt_item_body
@@ -192,7 +192,7 @@ class JsonToQtGenerator:
         Raises:
             RuntimeError: The port's data could not be found in the json output.
         """
-        
+
         node_cells_data = self._html_nodes_data[node_name]
 
         for (cell_outline, cell_label) in node_cells_data:
@@ -237,7 +237,7 @@ class JsonToQtGenerator:
             if label_data is not None:
                 label = self._get_label(label_data)
                 label.setParentItem(curve)
-        
+
         return curve
 
 
@@ -340,7 +340,7 @@ class JsonToQtGenerator:
         for point in data[j.POINTS]:
             qt_coord = self._dot_coords_to_qt_coords((point[0], point[1]))
             polygon.append(QPointF(qt_coord[0], qt_coord[1]))
-        
+
         polygonItem = QGraphicsPolygonItem(polygon)
         return polygonItem
 
@@ -405,7 +405,7 @@ class JsonToQtGenerator:
 
     #
     # Utils
-    # 
+    #
 
     def _dot_coords_to_qt_coords(self, coords: Tuple[float, float]) -> Tuple[float, float]:
         """ Converts dot coordinates (origin on the bottom-left corner) to Qt
@@ -417,10 +417,14 @@ class JsonToQtGenerator:
 
     def _get_node_id_per_name(self, name: str) -> int:
         node = j.get_data_by_key_value(self._graph_data[j.OBJECTS], j.NAME, name)
+        print(self._graph_data[j.OBJECTS])
+        print(name)
+        print(node)
         return node.get(j.ID)
 
 
-    def _get_edge_per_nodes_names(self, head_name: str, tail_name: str) -> Dict[str, Any]:
+    def _get_edge_per_nodes_names(self, head_name: str, tail_name: str) \
+                                 -> Dict[str, Any]:
         # Retrieving the nodes' IDs:
         head_id = self._get_node_id_per_name(head_name)
         tail_id = self._get_node_id_per_name(tail_name)
@@ -437,7 +441,7 @@ class JsonToQtGenerator:
     def _init_html_nodes_data(self) -> None:
         """ Structures and stores the html-style nodes' display data in
         self._graph_data.
-        
+
         The data will be stored as a dictionary, each key being a node's name
         and its value being a list of the node's cells' display data.
         The display data for a cell is a tuple. Its first element is a list of
