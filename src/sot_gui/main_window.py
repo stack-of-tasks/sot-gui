@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 from enum import Enum
 import threading
 from time import sleep
@@ -8,7 +8,7 @@ from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
-from sot_gui.graph import Graph, Node, Port, Edge, EntityNode, InputNode
+from sot_gui.graph import Graph, Node, Port, Edge, EntityNode
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -268,20 +268,41 @@ class SoTGraphView(QGraphicsView):
 
     def _completeGroupCreation(self) -> None:
         """ TODO """
-        self.interactionMode = self.InteractionMode.DEFAULT
+        # If clusterizing the selected nodes is not possible, we let the user
+        # keep on selecting:
+        if self.scene().check_clusterizability() is False:
+            self._message_box_wrong_cluster()
+            return
+
+        # Else, we let them enter the name of the group in a dialog box:
         group_name, clicked_ok = QInputDialog().getText(self, 'Group name',
                                 'Please enter a name for this entity group.')
 
+         # If the user cancelled, we let them keep on selecting
         if clicked_ok:
+            self.interactionMode = self.InteractionMode.DEFAULT
             self.scene().complete_group_creation(group_name)
-        else:
-            self.cancelGroupCreation()
 
 
     def cancelGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
         self.scene().clear_selection()
+
+
+    def _message_box_wrong_cluster(self) -> None:
+        """ Displays a message box to tell the user that the current selection
+            is sot suitable to create a cluster.
+        """
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("Wrong selection")
+
+        # Asking the user if they want to reconnect and refresh:
+        message_box.setText("A cluster cannot be created with the currently "
+                            "selected nodes.")
+        message_box.setInformativeText('Please select:\n  - at least two nodes'
+                                        '\n  - only directly linked nodes')
+        message_box.exec_()
 
 
 class SoTGraphScene(QGraphicsScene):
@@ -373,12 +394,17 @@ class SoTGraphScene(QGraphicsScene):
 
     def complete_group_creation(self, group_name: str) -> None:
         """ TODO """
-        if self._graph.add_cluster(group_name, self._selected_nodes.copy()):
-            self.clear_selection()
-            print('Clusterization complete')
-        else:
-            self.clear_selection()
-            print('Clusterization not possible')
+
+        self._graph.add_cluster(group_name, self._selected_nodes.copy())
+        self.clear_selection()
+        print('Clusterization complete')
+
+
+    def check_clusterizability(self) -> bool:
+        """ Returns True if a cluster can be created from the currently selected
+            nodes.
+        """
+        return self._graph.check_clusterizability(self._selected_nodes.copy())
 
 
     def clear_selection(self) -> None:

@@ -285,19 +285,15 @@ class Graph:
         self._generate_qt_items()
 
 
-    def add_cluster(self, name: str, nodes: List[Node]) -> bool:
-        """ Adds a cluster to the graph.
-
-            Returns: True if the cluster was successfully created, False if not.
+    def add_cluster(self, name: str, nodes: List[Node]) -> None:
+        """ Adds a cluster to the graph. Checks on the validity of the
+            cluster should be made before calling this method.
         """
-        if self._check_clusterizability(nodes) is True:
-            new_cluster = Cluster(name, nodes)
-            self._clusters.append(new_cluster)
-            return True
-        return False
+        new_cluster = Cluster(name, nodes)
+        self._clusters.append(new_cluster)
 
 
-    def _check_clusterizability(self, nodes: List[Node]) -> bool:
+    def check_clusterizability(self, nodes: List[Node]) -> bool:
         """ Returns True if a Cluster object can be contructed from the given
             list of Nodes.
 
