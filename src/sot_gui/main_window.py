@@ -23,7 +23,8 @@ class MainWindow(QMainWindow):
         self._view.setScene(self._graph_scene)
         self.setCentralWidget(self._view)
 
-        self._add_toolbar()
+        self._add_main_toolbar()
+        self._add_cluster_toolbar()
         self._add_status_bar()
 
         # Displaying the graph:
@@ -39,9 +40,10 @@ class MainWindow(QMainWindow):
     # ADDITIONAL WIDGETS
     #
 
-    def _add_toolbar(self) -> None:
+    def _add_main_toolbar(self) -> None:
         """ Adds the sot graph toolbar to the main window. """
-        toolbar = QToolBar("Toolbar")
+        toolbar = QToolBar("main_toolbar")
+        self._main_toolbar = toolbar
         self.addToolBar(toolbar)
 
         button_refresh = QAction("Refresh", self)
@@ -55,6 +57,30 @@ class MainWindow(QMainWindow):
         button_clusterize = QAction("Create group", self)
         button_clusterize.triggered.connect(self._create_entity_group)
         toolbar.addAction(button_clusterize)
+
+
+    def _add_cluster_toolbar(self):
+        self.addToolBarBreak()
+        toolbar = QToolBar("cluster_toolbar")
+        self.addToolBar(toolbar)
+        self._cluster_toolbar = toolbar
+
+        button_complete = QAction("Create cluster", self)
+        button_complete.triggered.connect(self._view._completeGroupCreation)
+        toolbar.addAction(button_complete)
+
+        button_cancel = QAction("Cancel clusterization", self)
+        button_cancel.triggered.connect(self._view.cancelGroupCreation)
+        toolbar.addAction(button_cancel)
+
+        # This toolbar will only be shown during cluster creation
+        toolbar.hide()
+
+
+    def show_cluster_toolbar(self):
+        self._cluster_toolbar.show()
+    def hide_cluster_toolbar(self):
+        self._cluster_toolbar.hide()
 
 
     def _add_status_bar(self) -> None:
@@ -218,18 +244,6 @@ class SoTGraphView(QGraphicsView):
         self._handleZoom(event.angleDelta().y())
 
 
-    def keyReleaseEvent(self, event):
-        """ See QGraphicsView.keyReleaseEvent """
-        # If the group creation mode is on, releasing the escape key cancels the
-        # action and releasing the return key completes it:
-        if self.interactionMode == self.InteractionMode.GROUP_CREATION:
-            key = event.key()
-            if key == Qt.Key_Enter or key == Qt.Key_Return:
-                self._completeGroupCreation()
-            elif key == Qt.Key_Escape:
-                self.cancelGroupCreation()
-
-
     def mouseReleaseEvent(self, event):
         """ See QGraphicsView.mouseReleaseEvent """
         click_pos = event.localPos()
@@ -263,6 +277,7 @@ class SoTGraphView(QGraphicsView):
     def launch_group_creation(self) -> None:
         """ TODO """
         if self.interactionMode != self.InteractionMode.GROUP_CREATION:
+            self.parent().show_cluster_toolbar()
             self.interactionMode = self.InteractionMode.GROUP_CREATION
 
 
@@ -282,12 +297,14 @@ class SoTGraphView(QGraphicsView):
         if clicked_ok:
             self.interactionMode = self.InteractionMode.DEFAULT
             self.scene().complete_group_creation(group_name)
+            self.parent().hide_cluster_toolbar()
 
 
     def cancelGroupCreation(self) -> None:
         """ TODO """
         self.interactionMode = self.InteractionMode.DEFAULT
         self.scene().clear_selection()
+        self.parent().hide_cluster_toolbar()
 
 
     def _message_box_wrong_cluster(self) -> None:
