@@ -56,15 +56,15 @@ class Node:
     def parent_nodes(self) -> List[Node]:
         parents = []
         for input in self.inputs():
-            if input.node() is not None:
-                parents.append(input.node())
+            if input.edge() is not None:
+                parents.append(input.edge().tail().node())
         return parents
 
     def child_nodes(self) -> List[Node]:
         children = []
         for output in self.outputs():
-            if output.node() is not None:
-                children.append(output.node())
+            if output.edge() is not None:
+                children.append(output.edge().head().node())
         return children
 
 
@@ -306,8 +306,6 @@ class Graph:
                 - only direclty linked nodes (every node can be accessed from
                   any other node by going through inputs or outputs)
         """
-        for node in nodes:
-            print(node.name())
 
         if len(nodes) < 2:
             return False
@@ -315,6 +313,8 @@ class Graph:
         # For each node, we check if at least one of its parents or children is
         # in the list:
         def _nodes_are_linked(node1: Node, node2: Node) -> bool:
+            if node1 == node2:
+                return False
             return node1 in (node2.parent_nodes() + node2.child_nodes())
 
         for node_to_check in nodes:
