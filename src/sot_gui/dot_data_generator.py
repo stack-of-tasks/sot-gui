@@ -29,10 +29,10 @@ class DotDataGenerator:
         """ Returns the generated dot code as a utf-8 encoded string. """
         return self.get_dot_string().encode()
 
-    
+
     def add_node(self, name: str, attributes: Dict[str, Any] = None) -> None:
         """ Adds a node to the graph, with optional attributes.
-        
+
         Args:
             name: The name of the node
             attributes: A dictionary containing the attributes of the node.
@@ -41,7 +41,7 @@ class DotDataGenerator:
         """
 
         # The name cannot contain a colon, as this character is used to work
-        # with ports 
+        # with ports
         if ':' in name:
             raise ValueError("Node name cannot contain a colon ':'")
 
@@ -61,8 +61,7 @@ class DotDataGenerator:
         Args:
             name: name of the node
             ports: inputs and outputs of the node, as a tuple (inputs, outputs).
-                Each element of this tuple is a list of tuples (name, label)
-                containing the port's data.
+                Each element of this tuple is a list of the ports' names.
             label: label of the node. If None, the name of the node will be
                 used.
 
@@ -93,24 +92,22 @@ class DotDataGenerator:
     # should be updated to allow for a more even display of the ports.
     # Online tool to help understand where to use empty rows:
     # https://www.tablesgenerator.com/html_tables
-    def _get_html_rows_for_node(self, label: str, inputs: List[Tuple[str]],
-                                outputs: List[Tuple[str]]) -> str:
+    def _get_html_rows_for_node(self, label: str, input_names: List[str],
+                                output_names: List[str]) -> str:
         """ Generates html code for the rows of a node.
 
         Args:
             label: label of the node
-            inputs: input ports of the node, as a list of tuples (input_name,
-                input_label).
-            outputs: output ports of the node, as a list of tuples (output_name,
-                output_label).
+            inputs: names of the input ports.
+            outputs: names of the output ports.
 
         Returns:
             Html code for the rows of the node, as a string.
         """
 
         # We determine which column (inputs or outputs) has more rows
-        inputs_nb = len(inputs)
-        outputs_nb = len(outputs)
+        inputs_nb = len(input_names)
+        outputs_nb = len(output_names)
         max_nb = None
         if inputs_nb > outputs_nb:
             max_nb = 'inputs'
@@ -125,7 +122,7 @@ class DotDataGenerator:
         # https://www.tablesgenerator.com/html_tables
         rows_html = ""
         for i in range(nb_rows):
-            input, output = None, None
+            input_name, output_name = None, None
             rowspan_input, rowspan_output = 1, 1
             remaining_nb_rows = nb_rows - i
 
@@ -135,22 +132,22 @@ class DotDataGenerator:
             # `inputs_nb // outputs_nb` nb of lines, except the last one which
             # will span over the remaining available rows.
             if max_nb == 'inputs':
-                input = inputs[i]
+                input_name = input_names[i]
                 rowspan_output = inputs_nb // outputs_nb
                 if (output_count < outputs_nb and
                     i == output_count * rowspan_output):
-                    output = outputs[output_count]
+                    output_name = output_names[output_count]
                     if output_count == outputs_nb - 1: # If it's the last output
                         rowspan_output = remaining_nb_rows
                     output_count += 1
                 input_count += 1
-            
+
             # The same logic applies if there are more outputs
             elif max_nb == 'outputs':
-                output = outputs[i]
+                output_name = output_names[i]
                 rowspan_input = outputs_nb // inputs_nb
                 if input_count < inputs_nb and i == input_count * rowspan_input:
-                    input = inputs[input_count]
+                    input_name = input_names[input_count]
                     if input_count == inputs_nb - 1: # If it's the last input
                         rowspan_input = remaining_nb_rows
                     input_count += 1
@@ -159,17 +156,16 @@ class DotDataGenerator:
             # If `inputs_nb` and `outputs_nb` are equal, we add one input and
             # one output on each row, so both with a rowspan of 1
             else:
-                input = inputs[i]
-                output = outputs[i]
+                input_name = input_names[i]
+                output_name = output_names[i]
                 input_count += 1
                 output_count += 1
 
             # Creating the html code for the row
             input_cell = ''
-            if input is not None:
-                (in_name, in_label) = input
+            if input_name is not None:
                 input_cell = (f'\t\t\t<TD ROWSPAN="{rowspan_input}" '
-                    f'PORT="{in_name}">{in_label}</TD>\n')
+                    f'PORT="{input_name}">{input_name}</TD>\n')
 
             # The node's label is added to the first row and spans over each row
             label_cell = ''
@@ -177,16 +173,15 @@ class DotDataGenerator:
                 label_cell = f'\t\t\t<TD ROWSPAN="{nb_rows}">{label}</TD>\n'
 
             output_cell = ''
-            if output is not None:
-                (out_name, out_label) = output
+            if output_name is not None:
                 output_cell = (f'\t\t\t<TD ROWSPAN="{rowspan_output}" '
-                    f'PORT="{out_name}">{out_label}</TD>\n')
+                    f'PORT="{output_name}">{output_name}</TD>\n')
 
             row_content = input_cell + label_cell + output_cell
             rows_html += f'\t\t<TR>\n{row_content}\t\t</TR>\n'
 
         return rows_html
-    
+
 
     def add_edge(self, tail: Tuple[str, str, str], head: Tuple[str, str, str],
                  attributes: Dict[str, Any] = None) -> None:
@@ -194,7 +189,7 @@ class DotDataGenerator:
 
         Args:
             tail: tuple containing the tail data: (node name, port name,
-                port type). The port name can be None. 
+                port type). The port name can be None.
             head: tuple containing the head data: (node name, port name,
                 port type). The port name can be None.
             attributes: A dictionary containing the attributes of the edge.
@@ -252,7 +247,7 @@ class DotDataGenerator:
 
     def set_node_attributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets nodes attributes.
-        
+
         These attributes will only be applied to nodes created after calling
         this method.
 
@@ -272,7 +267,7 @@ class DotDataGenerator:
 
     def set_edge_attributes(self, attributes: Dict[str, Any]) -> None:
         """ Sets edges attributes.
-        
+
         These attributes will only be applied to edges created after calling
         this method.
 

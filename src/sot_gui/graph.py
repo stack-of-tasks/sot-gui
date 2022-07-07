@@ -512,7 +512,8 @@ class Graph:
         return dot_generator.get_encoded_dot_string()
 
 
-    def _add_input_nodes_to_dot_code(self, dot_generator: DotDataGenerator):
+    def _add_input_nodes_to_dot_code(self, dot_generator: DotDataGenerator) \
+                                     -> None:
         """ Adds all of the graph's input nodes to the given dot data generator. """
 
         # From now on, every added node will be round:
@@ -520,6 +521,11 @@ class Graph:
 
         # For every input, we only display a node (and not its output port):
         for node in self._input_nodes:
+
+            # If the node is in a cluster, we don't add it in the main graph
+            if node.cluster() is not None:
+                continue
+
             output_ports = node.outputs()
             if len(output_ports) != 1:
                 raise ValueError("An InputNode should have exactly one output.")
@@ -527,7 +533,8 @@ class Graph:
             dot_generator.add_node(node.name(), {'label': output_value})
 
 
-    def _add_entity_nodes_to_dot_code(self, dot_generator: DotDataGenerator):
+    def _add_entity_nodes_to_dot_code(self, dot_generator: DotDataGenerator) \
+                                      -> None:
         """ Adds all of the graph's entity nodes, with their ports, to the given
             dot data generator.
         """
@@ -537,13 +544,13 @@ class Graph:
         dot_generator.set_node_attributes({'shape': 'none'})
 
         for entity in self._dg_entities:
-            inputs = []
-            outputs = []
-            for port in entity.inputs():
-                inputs.append((port.name(), port.name()))
-            for port in entity.outputs():
-                outputs.append((port.name(), port.name()))
 
+            # If the node is in a cluster, we don't add it in the main graph
+            if entity.cluster() is not None:
+                continue
+
+            inputs = [port.name() for port in entity.inputs()]
+            outputs = [port.name() for port in entity.outputs()]
             label = self._generate_entity_node_label(entity)
 
             dot_generator.add_html_node(entity.name(), (inputs, outputs), label)
@@ -562,6 +569,21 @@ class Graph:
         if node_type is None:
             return node_name
         return f"{node_type}({node_name})"
+
+
+    # def _add_clusters_to_dot_code(self, dot_generator: DotDataGenerator) \
+    #                               -> None:
+    #     """ Adds a cluster to the given dot data generator.
+
+    #         The cluster will be added as a subgraph if it is expanded. Else, it
+    #         will be added as an html node.
+    #     """
+    #     for cluster in self._clusters:
+    #         if cluster.is_expanded():
+    #             raise NotImplementedError
+    #         else:
+    #             name = cluster.name()
+    #             dot_generator.add_html_node(name, (inputs, outputs), name)
 
 
     def _add_edges_to_dot_code(self, dot_generator: DotDataGenerator):
