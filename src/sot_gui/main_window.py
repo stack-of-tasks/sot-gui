@@ -239,12 +239,14 @@ class SoTGraphView(QGraphicsView):
 
     def wheelEvent(self, event):
         """ See QGraphicsView.wheelEvent """
+        super().wheelEvent(event)
         # The user can zoom in or out by rotating the mouse wheel:
         self._handleZoom(event.angleDelta().y())
 
 
     def mouseReleaseEvent(self, event):
         """ See QGraphicsView.mouseReleaseEvent """
+        super().mouseReleaseEvent(event)
         click_pos = event.localPos()
         clicked_item = self.itemAt(click_pos.x(), click_pos.y())
         if clicked_item is None:
