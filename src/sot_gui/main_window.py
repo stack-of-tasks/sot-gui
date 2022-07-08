@@ -251,6 +251,7 @@ class SoTGraphView(QGraphicsView):
         clicked_item = self.itemAt(click_pos.x(), click_pos.y())
         if clicked_item is None:
             return
+        print(self.scene().get_graph_elem_per_qt_item(clicked_item))
 
         if self.interactionMode == self.InteractionMode.GROUP_CREATION:
             self.scene().select_item_for_group_creation(clicked_item)

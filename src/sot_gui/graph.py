@@ -635,8 +635,6 @@ class Graph:
     def _add_edge_to_dot_code(self, edge: Edge, head: Port, tail: Port,
                               dot_generator: DotDataGenerator) -> None:
 
-        print(tail, tail.name(), tail.node(), type(tail))
-
         child_port_name = head.name()
         child_node_name = head.node().name()
 
@@ -791,7 +789,8 @@ class Graph:
         while item.parentItem() != None:
             item = item.parentItem()
 
-        for node in self._dg_entities + self._input_nodes:
+        for node in (self._dg_entities + self._input_nodes
+                     + self.shrinked_clusters()):
             if node.qt_item() == item:
                 return node
 
