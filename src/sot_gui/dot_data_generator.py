@@ -70,8 +70,6 @@ class DotDataGenerator:
         """
 
         (inputs, outputs) = ports
-        if inputs == [] or outputs == []:
-            raise RuntimeError('')
 
         if label is None:
             label = name
@@ -104,6 +102,8 @@ class DotDataGenerator:
         Returns:
             Html code for the rows of the node, as a string.
         """
+        if output_names == []:
+            raise RuntimeError('An html node cannot have no output.')
 
         # We determine which column (inputs or outputs) has more rows
         inputs_nb = len(input_names)
@@ -126,12 +126,17 @@ class DotDataGenerator:
             rowspan_input, rowspan_output = 1, 1
             remaining_nb_rows = nb_rows - i
 
+            if inputs_nb == 0:
+                input_name = None
+                output_name = output_names[i]
+                output_count += 1
+
             # If there are more inputs, each input cell will have a rowspan of
             # 1, the middle column (node's label) will have a rowspan of
             # `inputs_nb`, and each output cell will span over
             # `inputs_nb // outputs_nb` nb of lines, except the last one which
             # will span over the remaining available rows.
-            if max_nb == 'inputs':
+            elif max_nb == 'inputs':
                 input_name = input_names[i]
                 rowspan_output = inputs_nb // outputs_nb
                 if (output_count < outputs_nb and

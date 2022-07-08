@@ -452,11 +452,13 @@ class SoTGraphScene(QGraphicsScene):
                     unselected).
         """
         new_color = self._selected_color if selected else self._unselected_color
-        node.qt_item().setBrush(QColor(new_color))
+        if node.qt_item() is not None:
+            node.qt_item().setBrush(QColor(new_color))
 
         if not isinstance(node, InputNode):
             for port in node.ports():
-                port.qt_item().setBrush(QColor(new_color))
+                if port.qt_item() is not None:
+                    port.qt_item().setBrush(QColor(new_color))
 
 
     def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \

@@ -131,7 +131,8 @@ class JsonToQtGenerator:
     # Nodes and edges generation
     #
 
-    def get_qt_item_for_node(self, node_name: str) -> QGraphicsItem:
+    def get_qt_item_for_node(self, node_name: str, no_input: bool = False) \
+                             -> QGraphicsItem:
         """ Returns a qt item corresponding to a node.
 
             The qt item will be the node's body (i.e its shape OR the middle
@@ -144,6 +145,7 @@ class JsonToQtGenerator:
             Args:
                 node_name: name of the node, as given in the dot code used to
                     generate the json output.
+                no_input: True if the node has no input port displayed.
         """
         # Getting the dictionary containing data on the node:
         node_data = j.get_data_by_key_value(self._graph_data[j.OBJECTS], j.NAME,
@@ -172,8 +174,8 @@ class JsonToQtGenerator:
 
         else: # Html case
             node_cells_data = self._html_nodes_data[node_name]
-            # During the dot code generation, the middle cell is created 2nd:
-            (outline_data, label_data) = node_cells_data[1]
+            label_cell_index = 0 if no_input else 1
+            (outline_data, label_data) = node_cells_data[label_cell_index]
             qt_item_body = self._get_html_cell(outline_data, label_data)
 
         return qt_item_body
@@ -462,7 +464,8 @@ class JsonToQtGenerator:
             if j.BODY_DRAW not in node: # If it's an html node
                 node_data = self._get_html_table_data(node.get(j.LABEL_DRAW))
 
-                if len(node_data) < 3:
+                # A node must have at least a label cell and an output cell
+                if len(node_data) < 2:
                     raise RuntimeError('JsonToQtGenerator._init_html_nodes_data:'
                             " not enough cells in node's label json data.")
 

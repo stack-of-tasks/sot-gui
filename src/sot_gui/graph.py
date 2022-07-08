@@ -622,7 +622,7 @@ class Graph:
 
                 # If the tail is in a shrinked cluster, we link the edge to the
                 # cluster port instead of the node port:
-                tail_cluster: Cluster = tail_port.node().cluster()
+                tail_cluster: Cluster = self._get_cluster_for_port(tail_port)
                 if tail_cluster is not None and not tail_cluster.is_expanded():
                     tail_port = tail_cluster.get_cluster_port_per_node_port(
                                 tail_port)
@@ -630,42 +630,6 @@ class Graph:
 
                 self._add_edge_to_dot_code(edge, head_port, tail_port,
                                            dot_generator)
-
-                # # Port / node whose output is linked this input via this signal:
-                # parent_port = edge.tail()
-                # parent_node = parent_port.node()
-                # if isinstance(parent_node, Cluster):
-                #     parent_port = node.get_cluster_port_per_node_port(
-                #                   parent_port)
-                # parent_node_name, parent_port_name = None, None
-
-                # # If the parent node is in a shrinked cluster, we plug the edge
-                # # to the cluster port corresponding to this node port:
-                # parent_cluster = parent_node.cluster()
-                # if parent_cluster is not None:
-                #     parent_port = parent_cluster.get_cluster_port_per_node_port(
-                #                   parent_port)
-                #     parent_port_name = parent_port.name()
-                #     parent_node_name = parent_cluster.name()
-                # else:
-                #     parent_port_name = parent_port.name()
-                #     parent_node_name = parent_node.name()
-
-                # # The value is displayed only if the parent node isn't an InputNode:
-                # attributes = None
-                # if isinstance(self._get_node_per_name(parent_node_name), EntityNode):
-                #     attributes = {'label': edge.value()}
-
-                # # The tail's port will not be displayed if the parent node is an
-                # # input value
-                # if isinstance(parent_node, InputNode):
-                #     tail = (parent_node_name, None)
-                # else:
-                #     tail = (parent_node_name, parent_port_name)
-
-                # head = (node.name(), edge.head().name())
-
-                # dot_generator.add_edge(tail, head, attributes)
 
 
     def _add_edge_to_dot_code(self, edge: Edge, head: Port, tail: Port,
@@ -707,7 +671,7 @@ class Graph:
             attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
-        print(encoded_dot_code.decode())
+        #print(encoded_dot_code.decode())
 
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE,
                    stderr=PIPE).communicate(encoded_dot_code)
@@ -717,7 +681,8 @@ class Graph:
         qt_generator = JsonToQtGenerator(out.decode('utf-8'))
         # For every node, we get its qt item (as a parent item containing the
         # other items):
-        for node in self._input_nodes + self._dg_entities + self._clusters:
+        for node in (self._input_nodes + self._dg_entities +
+                     self.shrinked_clusters()):
 
             # If the node is in a cluster, we ignore it as the cluster will be
             # handled later
@@ -734,15 +699,13 @@ class Graph:
             # If it's an EntityNode or a shrinked Cluster, the qt item
             # corresponding to the node is the middle column of the html table
             # (i.e the node's label)
-            if not (isinstance(node, Cluster) and node.is_expanded == True):
-                qt_item_node = qt_generator.get_qt_item_for_node(node.name())
-                node.set_qt_item(qt_item_node)
+            no_input = node.inputs() == []
+            qt_item_node = qt_generator.get_qt_item_for_node(node.name(),
+                                                             no_input)
+            node.set_qt_item(qt_item_node)
 
-            # Getting the qt items for each of the EntityNode's ports and edges:
-            if isinstance(node, Cluster):
-                ports = [port.node_port() for port in node.ports()]
-            else:
-                ports = node.ports()
+            # Getting the qt items for each of the node's ports and edges:
+            ports = node.ports()
             for port in ports:
                 qt_item_port = qt_generator.get_qt_item_for_port(node.name(),
                                                                  port.name())
@@ -753,11 +716,16 @@ class Graph:
                 edge = port.edge()
                 if edge is None:
                     continue
-                head_name = edge.head().node().name()
-                tail_name = edge.tail().node().name()
+                head_node_name = node.name()
 
-                qt_item_edge = qt_generator.get_qt_item_for_edge(head_name,
-                                                                 tail_name)
+                tail_port = edge.tail()
+                tail_cluster_port = self._get_cluster_port_for_port(tail_port)
+                if tail_cluster_port is not None:
+                    tail_port = tail_cluster_port
+                tail_node_name = tail_port.node().name()
+
+                qt_item_edge = qt_generator.get_qt_item_for_edge(head_node_name,
+                                                                 tail_node_name)
                 edge.set_qt_item(qt_item_edge)
 
 
@@ -790,6 +758,9 @@ class Graph:
         # port's edge if it's an input (so that edges are not handled twice)
         nodes = self._dg_entities + self._input_nodes + self._clusters
         for node in nodes:
+            if node.cluster() is not None:
+                continue
+
             add_qt_item(node.qt_item())
 
             if isinstance(node, InputNode):
@@ -836,3 +807,17 @@ class Graph:
                     return edge
 
         return None
+
+
+    def _get_cluster_port_for_port(self, port: Port) -> ClusterPort:
+        """ Returns the ClusterPort corresponding to the given Port. """
+        cluster = self._get_cluster_for_port(port)
+        if cluster is None:
+            return None
+        return cluster.get_cluster_port_per_node_port(port)
+
+
+    def _get_cluster_for_port(self, port: Port) -> Cluster:
+        """ Returns the cluster containing the given node port. """
+        return port.node().cluster()
+
