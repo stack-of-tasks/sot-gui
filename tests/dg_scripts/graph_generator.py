@@ -1,8 +1,8 @@
-from dynamic_graph import plug 
-from dynamic_graph.sot.core.operator import Add_of_double 
+from dynamic_graph import plug
+from dynamic_graph.sot.core.operator import Add_of_double
 from dynamic_graph.sot.core.operator import Multiply_of_double
 
-NUMBER_OF_LINES = 2
+NUMBER_OF_LINES = 3
 
 def getNbOfNodesOnLine(lineIdx):
     return pow(2, lineIdx)

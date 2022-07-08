@@ -417,9 +417,6 @@ class JsonToQtGenerator:
 
     def _get_node_id_per_name(self, name: str) -> int:
         node = j.get_data_by_key_value(self._graph_data[j.OBJECTS], j.NAME, name)
-        print(self._graph_data[j.OBJECTS])
-        print(name)
-        print(node)
         return node.get(j.ID)
 
 

@@ -6,9 +6,8 @@ from time import sleep
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog)
 from PySide2.QtGui import QColor
-from PySide2.QtCore import Qt
 
-from sot_gui.graph import Graph, Node, Port, Edge, EntityNode
+from sot_gui.graph import Graph, Node, Port, Edge, InputNode
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -455,7 +454,7 @@ class SoTGraphScene(QGraphicsScene):
         new_color = self._selected_color if selected else self._unselected_color
         node.qt_item().setBrush(QColor(new_color))
 
-        if isinstance(node, EntityNode):
+        if not isinstance(node, InputNode):
             for port in node.ports():
                 port.qt_item().setBrush(QColor(new_color))
 
