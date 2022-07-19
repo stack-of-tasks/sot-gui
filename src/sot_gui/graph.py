@@ -322,7 +322,8 @@ class Graph:
     def graph_info(self) -> Dict[str, Any]:
         return deepcopy(self._graph_info)
 
-
+    def clusters(self) -> List[Cluster]:
+        return self._clusters.copy()
     def shrinked_clusters(self) -> List[Cluster]:
         return [clust for clust in self._clusters if not clust.is_expanded()]
     def expanded_clusters(self) -> List[Cluster]:

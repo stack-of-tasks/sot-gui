@@ -1,13 +1,16 @@
+from __future__ import annotations
 from typing import Union, List
 from enum import Enum
 import threading
 from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
-    QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog)
+    QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog,
+    QDockWidget, QListWidget)
 from PySide2.QtGui import QColor
+from PySide2.QtCore import Qt
 
-from sot_gui.graph import Graph, Node, Port, Edge, InputNode
+from sot_gui.graph import Graph, Node, Port, Edge, InputNode, Cluster
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -25,6 +28,7 @@ class MainWindow(QMainWindow):
         self._add_main_toolbar()
         self._add_cluster_toolbar()
         self._add_status_bar()
+        self._add_side_info_widget()
 
         # Displaying the graph:
         self._refresh_graph()
@@ -53,9 +57,13 @@ class MainWindow(QMainWindow):
         button_reconnect.triggered.connect(self._reconnect)
         toolbar.addAction(button_reconnect)
 
-        button_clusterize = QAction("Create group", self)
+        button_clusterize = QAction("Create cluster", self)
         button_clusterize.triggered.connect(self._create_entity_group)
         toolbar.addAction(button_clusterize)
+
+        button_manage_clusters = QAction("Manage clusters", self)
+        button_manage_clusters.triggered.connect(self._manage_clusters)
+        toolbar.addAction(button_manage_clusters)
 
 
     def _add_cluster_toolbar(self):
@@ -132,6 +140,14 @@ class MainWindow(QMainWindow):
         self._co_status_indicator.setStyleSheet('QLabel {color: ' + color + '}')
 
 
+    def _add_side_info_widget(self) -> None:
+        self._side_info_widget = QDockWidget(self)
+        self._side_info_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
+                                               Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._side_info_widget)
+        self._side_info_widget.hide()
+
+
     def _message_box_no_connection(self, refresh: bool = False) -> None:
         """ Displays a message box which asks the user if the want to reconnect
             to the kernel.
@@ -206,6 +222,20 @@ class MainWindow(QMainWindow):
         if (self._view.interactionMode ==
             SoTGraphView.InteractionMode.GROUP_CREATION):
             self._view.cancelGroupCreation()
+
+
+    def _manage_clusters(self) -> None:
+        self._list_widget = ClusterListWidget(self, self._view.scene())
+        self._side_info_widget.setWidget(self._list_widget)
+        self._side_info_widget.show()
+
+
+class ClusterListWidget(QListWidget):
+    def __init__(self, parent, graph_scene: SoTGraphScene):
+        super().__init__(parent)
+        cluster_list = graph_scene.get_cluster_list()
+        for cluster in cluster_list:
+            self.addItem(cluster.name())
 
 
 class SoTGraphView(QGraphicsView):
@@ -462,6 +492,9 @@ class SoTGraphScene(QGraphicsScene):
             for port in node.ports():
                 if port.qt_item() is not None:
                     port.qt_item().setBrush(QColor(new_color))
+
+    def get_cluster_list(self) -> List[Cluster]:
+        return self._graph.clusters()
 
 
     def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \
