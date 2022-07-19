@@ -6,7 +6,7 @@ from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog,
-    QDockWidget, QListWidget)
+    QDockWidget, QListWidget, QListWidgetItem)
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         self._add_main_toolbar()
         self._add_cluster_toolbar()
         self._add_status_bar()
-        self._add_side_info_widget()
+        self._add_cluster_side_widget()
 
         # Displaying the graph:
         self._refresh_graph()
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
         self._cluster_toolbar = toolbar
 
-        button_complete = QAction("Create cluster", self)
+        button_complete = QAction("Confirm cluster", self)
         button_complete.triggered.connect(self._view._completeGroupCreation)
         toolbar.addAction(button_complete)
 
@@ -140,12 +140,10 @@ class MainWindow(QMainWindow):
         self._co_status_indicator.setStyleSheet('QLabel {color: ' + color + '}')
 
 
-    def _add_side_info_widget(self) -> None:
-        self._side_info_widget = QDockWidget(self)
-        self._side_info_widget.setAllowedAreas(Qt.LeftDockWidgetArea |
-                                               Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.RightDockWidgetArea, self._side_info_widget)
-        self._side_info_widget.hide()
+    def _add_cluster_side_widget(self) -> None:
+        self._cluster_side_widget = ClustersWidget('Clusters', self)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._cluster_side_widget)
+        self._cluster_side_widget.hide()
 
 
     def _message_box_no_connection(self, refresh: bool = False) -> None:
@@ -218,24 +216,41 @@ class MainWindow(QMainWindow):
 
 
     def _cancel_ongoing_actions(self) -> None:
-        """ TODO """
         if (self._view.interactionMode ==
             SoTGraphView.InteractionMode.GROUP_CREATION):
             self._view.cancelGroupCreation()
 
 
     def _manage_clusters(self) -> None:
-        self._list_widget = ClusterListWidget(self, self._view.scene())
-        self._side_info_widget.setWidget(self._list_widget)
-        self._side_info_widget.show()
+        self._cluster_side_widget.show()
 
 
-class ClusterListWidget(QListWidget):
-    def __init__(self, parent, graph_scene: SoTGraphScene):
-        super().__init__(parent)
-        cluster_list = graph_scene.get_cluster_list()
-        for cluster in cluster_list:
-            self.addItem(cluster.name())
+class ClustersWidget(QDockWidget):
+    def __init__(self, title, parent):
+        super().__init__(title, parent)
+        self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+
+        self._list_widget = QListWidget(self)
+        self.setWidget(self._list_widget)
+        option_delete = QAction("Delete", self)
+        option_delete.triggered.connect(self._remove_cluster)
+        self._list_widget.addAction(option_delete)
+        self._list_widget.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self._list_widget.setSortingEnabled(True)
+
+
+    def add_cluster(self, cluster: Cluster) -> None:
+        item = QListWidgetItem(cluster.name())
+        self._list_widget.addItem(item)
+
+
+    def _remove_cluster(self) -> None:
+        selected_items = self._list_widget.selectedItems()
+        for item in selected_items:
+            item_row = self._list_widget.indexFromItem(item).row()
+            self._list_widget.takeItem(item_row)
+            cluster_name = item.text()
+            self.parent()._view.scene().remove_cluster(cluster_name)
 
 
 class SoTGraphView(QGraphicsView):
@@ -319,7 +334,6 @@ class SoTGraphView(QGraphicsView):
 
 
     def _completeGroupCreation(self) -> None:
-        """ TODO """
         # If clusterizing the selected nodes is not possible, we let the user
         # keep on selecting:
         if self.scene().check_clusterizability() is False:
@@ -331,13 +345,13 @@ class SoTGraphView(QGraphicsView):
                                 'Please enter a name for this entity group.')
 
         if clicked_ok:
-            self.scene().complete_group_creation(group_name)
+            new_cluster = self.scene().complete_group_creation(group_name)
+            self.parent()._cluster_side_widget.add_cluster(new_cluster)
             self.exit_group_creation_mode()
-        # If the user cancelled, we let them keep on selecting
+        # If the user canceled, we let them keep on selecting
 
 
     def cancelGroupCreation(self) -> None:
-        """ TODO """
         self.exit_group_creation_mode()
 
 
@@ -419,7 +433,6 @@ class SoTGraphScene(QGraphicsScene):
 
 
     def select_item_for_group_creation(self, item: QGraphicsItem) -> None:
-        """ TODO """
         selected_node = None
         graph_elem = self.get_graph_elem_per_qt_item(item)
 
@@ -452,12 +465,16 @@ class SoTGraphScene(QGraphicsScene):
             self._update_color_selected_node(node, True)
 
 
-    def complete_group_creation(self, group_name: str) -> None:
-        """ TODO """
-
-        self._graph.add_cluster(group_name, self._selected_nodes.copy())
+    def complete_group_creation(self, group_name: str) -> Cluster:
+        new_cluster = self._graph.add_cluster(group_name,
+                                              self._selected_nodes.copy())
         self.update_display()
-        print('Clusterization complete')
+        return new_cluster
+
+
+    def remove_cluster(self, cluster_name: str) -> None:
+        self._graph.remove_cluster(cluster_name)
+        self.update_display()
 
 
     def check_clusterizability(self) -> bool:
@@ -468,7 +485,6 @@ class SoTGraphScene(QGraphicsScene):
 
 
     def clear_selection(self) -> None:
-        """ TODO """
         for node in self._selected_nodes:
             self._update_color_selected_node(node, False)
         self._selected_nodes = []

@@ -36,7 +36,6 @@ class GraphElement:
 
 
 class Node(GraphElement):
-    """ TODO """
     def __init__(self):
         super().__init__()
         self._cluster: Cluster = None
@@ -107,8 +106,6 @@ class Node(GraphElement):
 
 
 class InputNode(Node):
-    """ TODO """
-
     def __init__(self, output_edge: Edge):
         super().__init__()
 
@@ -125,7 +122,6 @@ class InputNode(Node):
 
 
 class EntityNode(Node):
-    """ TODO """
     def __init__(self, name: str, type: str = None):
         super().__init__()
         self._name = name
@@ -136,8 +132,6 @@ class EntityNode(Node):
 
 
 class Cluster(Node):
-    """ TODO """
-
     def __init__(self, name: str, nodes: List[Node]):
         super().__init__()
         self._name: str = name
@@ -191,8 +185,12 @@ class Cluster(Node):
         return None
 
 
+    def __del__(self):
+        for node in self._nodes:
+            node.cluster = None
+
+
 class Port(GraphElement):
-    """ TODO """
     def __init__(self, name: str, type: str, node: Node):
         super().__init__()
         self._edge = None
@@ -241,7 +239,6 @@ class ClusterPort(Port):
 
 
 class Edge(GraphElement):
-    """ TODO """
     def __init__(self, value: Any = None, value_type: str = None,
                 head: Port = None, tail: Port = None):
         super().__init__()
@@ -346,12 +343,26 @@ class Graph:
         self._get_dg_data()
 
 
-    def add_cluster(self, name: str, nodes: List[Node]) -> None:
+    def add_cluster(self, name: str, nodes: List[Node]) -> Cluster:
         """ Adds a cluster to the graph. Checks on the validity of the
             cluster should be made before calling this method.
+
+            Returns:
+                The new cluster.
         """
         new_cluster = Cluster(name, nodes)
         self._clusters.append(new_cluster)
+        return new_cluster
+
+
+    def remove_cluster(self, name: str) -> None:
+        index_to_remove = None
+        for index, cluster in enumerate(self._clusters):
+            if cluster.name() == name:
+                index_to_remove = index
+                break
+        if index_to_remove is not None:
+            self._clusters.pop(index_to_remove)
 
 
     def check_clusterizability(self, nodes: List[Node]) -> bool:
