@@ -1,12 +1,13 @@
 from __future__ import annotations
-from typing import Union, List
+from typing import Union, List, Dict
 from enum import Enum
 import threading
 from time import sleep
 
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog,
-    QDockWidget, QListWidget, QListWidgetItem)
+    QDockWidget, QListWidget, QListWidgetItem, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QScrollArea, QWidget)
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
@@ -268,6 +269,34 @@ class InfoPanel(QDockWidget):
     def __init__(self, parent):
         super().__init__('Element info', parent)
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self._display_entity_info({})
+
+
+    def _display_entity_info(self, entity_info: Dict) -> None:
+
+        self._scroll_area = QScrollArea()
+        self._info_widget = QWidget()
+        self.layout = QVBoxLayout()
+
+        for i in range(1,20):
+            object = QLabel("TextLabel:\naaa\n\n")
+            self.layout.addWidget(object)
+
+        self._info_widget.setLayout(self.layout)
+
+        self._scroll_area.setWidgetResizable(True)
+        self._scroll_area.setWidget(self._info_widget)
+
+        self.setWidget(self._scroll_area)
+
+
+        # self._table_info = QTableWidget(12, 2, self)
+        # self._table_info.setEditTriggers(QTableWidget.NoEditTriggers)
+        # self.setWidget(self._table_info)
+
+        # newItem = QTableWidgetItem('aaaaa')
+        # self._table_info.setItem(0, 0, newItem)
+
 
 
 class SoTGraphView(QGraphicsView):
