@@ -28,7 +28,8 @@ class MainWindow(QMainWindow):
         self._add_main_toolbar()
         self._add_cluster_toolbar()
         self._add_status_bar()
-        self._add_cluster_side_widget()
+        self._add_cluster_side_panel()
+        self._add_info_side_panel()
 
         # Displaying the graph:
         self._refresh_graph()
@@ -140,10 +141,16 @@ class MainWindow(QMainWindow):
         self._co_status_indicator.setStyleSheet('QLabel {color: ' + color + '}')
 
 
-    def _add_cluster_side_widget(self) -> None:
-        self._cluster_side_widget = ClustersWidget('Clusters', self)
-        self.addDockWidget(Qt.RightDockWidgetArea, self._cluster_side_widget)
-        self._cluster_side_widget.hide()
+    def _add_cluster_side_panel(self) -> None:
+        self._cluster_side_panel = ClustersPanel(self)
+        self.addDockWidget(Qt.RightDockWidgetArea, self._cluster_side_panel)
+        self._cluster_side_panel.hide()
+
+
+    def _add_info_side_panel(self) -> None:
+        self._info_side_panel = InfoPanel(self)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self._info_side_panel)
+        self._info_side_panel.hide()
 
 
     def _message_box_no_connection(self, refresh: bool = False) -> None:
@@ -222,12 +229,16 @@ class MainWindow(QMainWindow):
 
 
     def _manage_clusters(self) -> None:
-        self._cluster_side_widget.show()
+        self._cluster_side_panel.show()
 
 
-class ClustersWidget(QDockWidget):
-    def __init__(self, title, parent):
-        super().__init__(title, parent)
+#
+# SIDE WIDGETS
+#
+
+class ClustersPanel(QDockWidget):
+    def __init__(self, parent):
+        super().__init__('Clusters', parent)
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
         self._list_widget = QListWidget(self)
@@ -251,6 +262,12 @@ class ClustersWidget(QDockWidget):
             self._list_widget.takeItem(item_row)
             cluster_name = item.text()
             self.parent()._view.scene().remove_cluster(cluster_name)
+
+
+class InfoPanel(QDockWidget):
+    def __init__(self, parent):
+        super().__init__('Element info', parent)
+        self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
 
 class SoTGraphView(QGraphicsView):
@@ -300,6 +317,9 @@ class SoTGraphView(QGraphicsView):
 
         if self.interactionMode == self.InteractionMode.GROUP_CREATION:
             self.scene().select_item_for_group_creation(clicked_item)
+        elif self.interactionMode == self.InteractionMode.DEFAULT:
+            self.parent()._info_side_panel.show()
+
 
 
     #
@@ -346,7 +366,7 @@ class SoTGraphView(QGraphicsView):
 
         if clicked_ok:
             new_cluster = self.scene().complete_group_creation(group_name)
-            self.parent()._cluster_side_widget.add_cluster(new_cluster)
+            self.parent()._cluster_side_panel.add_cluster(new_cluster)
             self.exit_group_creation_mode()
         # If the user canceled, we let them keep on selecting
 
