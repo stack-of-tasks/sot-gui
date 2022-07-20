@@ -185,11 +185,6 @@ class Cluster(Node):
         return None
 
 
-    def __del__(self):
-        for node in self._nodes:
-            node.cluster = None
-
-
 class Port(GraphElement):
     def __init__(self, name: str, type: str, node: Node):
         super().__init__()
@@ -356,13 +351,12 @@ class Graph:
 
 
     def remove_cluster(self, name: str) -> None:
-        index_to_remove = None
         for index, cluster in enumerate(self._clusters):
             if cluster.name() == name:
-                index_to_remove = index
-                break
-        if index_to_remove is not None:
-            self._clusters.pop(index_to_remove)
+                for node in cluster.nodes():
+                    node.set_cluster(None)
+                self._clusters.pop(index)
+                return
 
 
     def check_clusterizability(self, nodes: List[Node]) -> bool:
@@ -569,6 +563,7 @@ class Graph:
 
             # If the node is in a cluster, we don't add it in the main graph
             if entity.cluster() is not None:
+                print('cluster!')
                 continue
 
             inputs = [port.name() for port in entity.inputs()]
@@ -681,7 +676,7 @@ class Graph:
             attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
-        #print(encoded_dot_code.decode())
+        print(encoded_dot_code.decode())
 
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE,
                    stderr=PIPE).communicate(encoded_dot_code)

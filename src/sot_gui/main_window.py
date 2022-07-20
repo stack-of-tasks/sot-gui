@@ -233,7 +233,7 @@ class ClustersWidget(QDockWidget):
         self._list_widget = QListWidget(self)
         self.setWidget(self._list_widget)
         option_delete = QAction("Delete", self)
-        option_delete.triggered.connect(self._remove_cluster)
+        option_delete.triggered.connect(self._remove_clusters)
         self._list_widget.addAction(option_delete)
         self._list_widget.setContextMenuPolicy(Qt.ActionsContextMenu)
         self._list_widget.setSortingEnabled(True)
@@ -244,7 +244,7 @@ class ClustersWidget(QDockWidget):
         self._list_widget.addItem(item)
 
 
-    def _remove_cluster(self) -> None:
+    def _remove_clusters(self) -> None:
         selected_items = self._list_widget.selectedItems()
         for item in selected_items:
             item_row = self._list_widget.indexFromItem(item).row()
@@ -296,7 +296,7 @@ class SoTGraphView(QGraphicsView):
         clicked_item = self.itemAt(click_pos.x(), click_pos.y())
         if clicked_item is None:
             return
-        print(self.scene().get_graph_elem_per_qt_item(clicked_item))
+        #print(self.scene().get_graph_elem_per_qt_item(clicked_item))
 
         if self.interactionMode == self.InteractionMode.GROUP_CREATION:
             self.scene().select_item_for_group_creation(clicked_item)
