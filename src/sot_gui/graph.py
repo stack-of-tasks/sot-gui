@@ -563,7 +563,6 @@ class Graph:
 
             # If the node is in a cluster, we don't add it in the main graph
             if entity.cluster() is not None:
-                print('cluster!')
                 continue
 
             inputs = [port.name() for port in entity.inputs()]
@@ -676,7 +675,7 @@ class Graph:
             attribute.
         """
         encoded_dot_code = self._get_encoded_dot_code()
-        print(encoded_dot_code.decode())
+        #print(encoded_dot_code.decode())
 
         (out, _) = Popen(['dot', '-Tjson'], stdin=PIPE, stdout=PIPE,
                    stderr=PIPE).communicate(encoded_dot_code)
