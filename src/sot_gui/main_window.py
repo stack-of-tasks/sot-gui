@@ -333,6 +333,10 @@ class InfoPanel(QDockWidget):
         element_info['title'] = 'Input'
 
         data = []
+        data.append(('Name', node.name()))
+        data.append(('Value', f"{str(node.value())} ({node.type()})"))
+        data.append(('Cluster', str(node.cluster())))
+
         element_info['data'] = data
 
         return element_info

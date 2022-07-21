@@ -128,6 +128,12 @@ class InputNode(Node):
         self._outputs = [output_port]
 
 
+    def value(self) -> Any:
+        return self.outputs()[0].value()
+    def type(self) -> type:
+        return self._type
+
+
 class EntityNode(Node):
     def __init__(self, name: str, type: str = None):
         super().__init__()
@@ -574,7 +580,7 @@ class Graph:
             output_ports = node.outputs()
             if len(output_ports) != 1:
                 raise ValueError("An InputNode should have exactly one output.")
-            output_value = output_ports[0].edge().value()
+            output_value = node.value()
             dot_generator.add_node(node.name(), {'label': output_value})
 
 
