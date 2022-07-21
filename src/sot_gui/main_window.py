@@ -312,13 +312,13 @@ class InfoPanel(QDockWidget):
         data.append(('Name', node.name()))
         data.append(('Type', node.type()))
         data.append(('Cluster', str(node.cluster())))
-        data.append(('Last execution', 't = ' + str(node.last_exec())))
 
-        signals = [('Name', 'Value')]
+        signals = [('Name', 'Value', 'Last execution')]
         node_ports = node.ports()
         for port in node_ports:
-            signal_value = port.value()
-            signals.append((port.name(), str(signal_value)))
+            signal_value = str(port.value())
+            last_exec = 't = ' + str(port.last_exec())
+            signals.append((port.name(), signal_value, last_exec))
         data.append(('Signals', signals))
 
         element_info['data'] = data

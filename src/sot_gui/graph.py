@@ -217,6 +217,7 @@ class Port(GraphElement):
     def set_edge(self, edge: Edge) -> None:
         self._edge = edge
         self.set_value(edge.value())
+        self.set_last_exec(edge.last_exec())
         if self._type == 'input':
             edge.set_head(self)
         elif self._type == 'output':
@@ -452,13 +453,16 @@ class Graph:
                 if plug_info['type'] == 'input':
                     self._add_signal_to_dg_data(plug_info, node)
 
-        # Getting the output values of nodes with outputs with no edges:
+        # Getting the data of outputs with no edges:
         for node in self._dg_entities:
             for port in node.outputs():
                 if port.edge() is None:
                     value = self._dg_communication.get_signal_value(node.name(),
                             port.name())
                     port.set_value(value)
+                    last_exec = self._dg_communication.get_exec_time(
+                                node.name(), port.name())
+                    port.set_last_exec(last_exec)
 
 
     def _add_signal_to_dg_data(self, plug_info: Dict[str, str], child_node: Node) -> None:
@@ -477,6 +481,8 @@ class Graph:
 
         signal_value = self._dg_communication.get_signal_value(child_node_name, sig_name)
         new_edge = Edge(signal_value, plug_info['value_type'])
+        last_exec = self._dg_communication.get_exec_time(child_node_name, sig_name)
+        new_edge.set_last_exec(last_exec)
 
         # Linking the signal to the child port:
         child_node.set_edge_for_port(new_edge, plug_info['name'])
