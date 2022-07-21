@@ -247,6 +247,7 @@ class ClustersPanel(QDockWidget):
         self.setWidget(self._list_widget)
         option_delete = QAction("Delete", self)
         option_delete.triggered.connect(self._remove_clusters)
+
         self._list_widget.addAction(option_delete)
         self._list_widget.setContextMenuPolicy(Qt.ActionsContextMenu)
         self._list_widget.setSortingEnabled(True)
@@ -284,7 +285,7 @@ class InfoPanel(QDockWidget):
                 display panel) and a 'data' element. This data is a list of
                 each section's content to display, as tuples (title, info).
                 This 'info' element can be a string (in this case it should be
-                displayed as-is, as a label) or an array of tuples (in this case
+                displayed as-is, as a label) or an array of arrays (in this case
                 it should be displayed as a table, with its first element being
                 the horizontal labels).
         """
@@ -313,12 +314,12 @@ class InfoPanel(QDockWidget):
         data.append(('Type', node.type()))
         data.append(('Cluster', str(node.cluster())))
 
-        signals = [('Name', 'Value', 'Last execution')]
+        signals = [['Name', 'Value', 'Last execution']]
         node_ports = node.ports()
         for port in node_ports:
             signal_value = str(port.value())
             last_exec = 't = ' + str(port.last_exec())
-            signals.append((port.name(), signal_value, last_exec))
+            signals.append([port.name(), signal_value, last_exec])
         data.append(('Signals', signals))
 
         element_info['data'] = data
@@ -376,7 +377,23 @@ class InfoPanel(QDockWidget):
         element_info['title'] = 'Cluster'
 
         data = []
+        data.append(('Name', cluster.name()))
+
+        signals = [['Name', 'Node', 'Value', 'Last execution']]
+        ports = cluster.ports()
+        for port in ports:
+            node_port = port.node_port()
+            signal_value = str(node_port.value())
+            last_exec = 't = ' + str(node_port.last_exec())
+            signals.append([node_port.name(), node_port.node().name(),
+                            signal_value, last_exec])
+        data.append(('Signals', signals))
         element_info['data'] = data
+
+        nodes = [['Name']]
+        for node in cluster.nodes():
+            nodes.append([node.name()])
+        data.append(['Nodes', nodes])
 
         return element_info
 
@@ -405,7 +422,7 @@ class InfoPanel(QDockWidget):
 
                 # Setting the horizontal and vertical labels
                 table_info.verticalHeader().setVisible(False)
-                table_info.setHorizontalHeaderLabels(list(data[0]))
+                table_info.setHorizontalHeaderLabels(data[0])
 
                 # Adding each element of the table
                 for line_idx, table_line in enumerate(data[1:]):
