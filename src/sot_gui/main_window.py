@@ -267,36 +267,80 @@ class ClustersPanel(QDockWidget):
 
 class InfoPanel(QDockWidget):
     def __init__(self, parent):
-        super().__init__('Element info', parent)
+        super().__init__('Info panel', parent)
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self._display_entity_info({})
+
+        element_info = dict(
+            title = 'Entity',
+            data = [ # Title and value for each section
+                ('Name', 'add1'),
+                ('Type', 'Add_of_double'),
+                ('Cluster', 'None'),
+                ('Last execution', 't = 5'),
+                (
+                    'Signals',
+                    [
+                        ('Name', 'Value'), # Titles of columns
+                        ('sin0', '12'),
+                        ('sin1', '4'),
+                        ('sout', '55.3'),
+                    ],
+                ),
+                (
+                    'Commands',
+                    [
+                        ('Name', 'Info'), # Titles of columns
+                        ('Command 1', 'Some info'),
+                        ('Command 2', 'Some info'),
+                    ],
+                ),
+            ],
+        )
+
+        self._display_element_info(element_info)
 
 
-    def _display_entity_info(self, entity_info: Dict) -> None:
+    def _display_element_info(self, element_info: Dict) -> None:
 
-        self._scroll_area = QScrollArea()
+        self._scroll_area = QScrollArea() # TODO: use QGridLayout
         self._info_widget = QWidget()
-        self.layout = QVBoxLayout()
+        self._layout = QVBoxLayout()
 
-        for i in range(1,20):
-            object = QLabel("TextLabel:\naaa\n\n")
-            self.layout.addWidget(object)
+        self.setWindowTitle(element_info['title'])
 
-        self._info_widget.setLayout(self.layout)
+        for (title, data) in element_info['data']:
+
+            if isinstance(data, list): # Table section
+                # Adding the title of the section
+                label = QLabel(f'<b>{title}</b>')
+                self._layout.addWidget(label)
+
+                # Creating the table
+                table_info = QTableWidget(len(data) - 1, len(data[0]), self)
+                table_info.setEditTriggers(QTableWidget.NoEditTriggers)
+                self._layout.addWidget(table_info)
+
+                # Setting the horizontal and vertical labels
+                table_info.verticalHeader().setVisible(False)
+                table_info.setHorizontalHeaderLabels(list(data[0]))
+
+                # Adding each element of the table
+                for line_idx, table_line in enumerate(data[1:]):
+                    for col_idx, table_elem in enumerate(table_line):
+                        new_item = QTableWidgetItem(table_elem)
+                        table_info.setItem(line_idx, col_idx, new_item)
+
+            else: # Text section
+                label = QLabel(f'<b>{title}</b><br>{data}')
+                self._layout.addWidget(label)
+
+        self._info_widget.setLayout(self._layout)
+
 
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setWidget(self._info_widget)
 
         self.setWidget(self._scroll_area)
-
-
-        # self._table_info = QTableWidget(12, 2, self)
-        # self._table_info.setEditTriggers(QTableWidget.NoEditTriggers)
-        # self.setWidget(self._table_info)
-
-        # newItem = QTableWidgetItem('aaaaa')
-        # self._table_info.setItem(0, 0, newItem)
-
 
 
 class SoTGraphView(QGraphicsView):
