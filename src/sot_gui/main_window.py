@@ -7,12 +7,12 @@ from time import sleep
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog,
     QDockWidget, QListWidget, QListWidgetItem, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QScrollArea, QWidget)
+    QVBoxLayout, QScrollArea, QWidget, QGraphicsPolygonItem)
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
 from sot_gui.graph import (Graph, GraphElement, Node, Port, Edge, EntityNode,
-    InputNode, Cluster, ClusterPort)
+    InputNode, Cluster)
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -491,6 +491,8 @@ class SoTGraphView(QGraphicsView):
             self.scene().select_item_for_group_creation(clicked_item)
         elif self.interactionMode == self.InteractionMode.DEFAULT:
             graph_elem = self.scene().get_graph_elem_per_qt_item(clicked_item)
+            self.scene().clear_selection()
+            self.scene().update_selected_elements(graph_elem)
             self.parent()._info_side_panel.display_element_info(graph_elem)
 
 
@@ -516,6 +518,7 @@ class SoTGraphView(QGraphicsView):
     def enter_group_creation_mode(self) -> None:
         """ TODO """
         if self.interactionMode != self.InteractionMode.GROUP_CREATION:
+            self.scene().clear_selection()
             self.parent().show_cluster_toolbar()
             self.interactionMode = self.InteractionMode.GROUP_CREATION
     def exit_group_creation_mode(self) -> None:
@@ -547,7 +550,6 @@ class SoTGraphView(QGraphicsView):
         self.exit_group_creation_mode()
 
 
-
     def _message_box_wrong_cluster(self) -> None:
         """ Displays a message box to tell the user that the current selection
             is sot suitable to create a cluster.
@@ -570,9 +572,6 @@ class SoTGraphScene(QGraphicsScene):
         Attributes: See QGraphicsScene
     """
 
-    _selected_color = 'lightGray'
-    _unselected_color = 'white'
-
     def __init__(self, parent):
         super().__init__(parent)
         self._connected_to_kernel = False
@@ -580,6 +579,7 @@ class SoTGraphScene(QGraphicsScene):
         self._graph = Graph(self._dg_communication)
 
         self._selected_nodes = []
+        self._selected_elements = []
 
 
     def is_kernel_running(self) -> bool:
@@ -640,8 +640,25 @@ class SoTGraphScene(QGraphicsScene):
         self._update_selected_nodes(selected_node)
 
 
+    def update_selected_elements(self, element: GraphElement) -> None:
+        """ Adds / removes an element to / from the selection.
+
+            Only the given element will be added to the selection, i.e if the
+            element is a port, the whole node will not be added.
+
+            Args:
+                element: The graph element to add to the selection.
+        """
+        if element in self._selected_elements:
+            self._selected_elements.remove(element)
+            self._update_color_selected_element(element, False)
+        else:
+            self._selected_elements.append(element)
+            self._update_color_selected_element(element, True)
+
+
     def _update_selected_nodes(self, node: Node) -> None:
-        """ Adds / removes a node to / from the selection.
+        """ Adds / removes a whole node to / from the selection.
 
             When a node is selected, if will be colored in its entirety (label
             cell + ports).
@@ -679,7 +696,38 @@ class SoTGraphScene(QGraphicsScene):
     def clear_selection(self) -> None:
         for node in self._selected_nodes:
             self._update_color_selected_node(node, False)
+        for element in self._selected_elements:
+            self._update_color_selected_element(element, False)
         self._selected_nodes = []
+        self._selected_elements = []
+
+
+    def _update_color_selected_element(self, element: GraphElement,
+                                        selected: bool) -> None:
+        """ Changes a graph element's color depending on its selection status.
+
+            Args:
+                element: The graph element whose color will be updated.
+                selected: If True (respectively if False), the node's color will
+                    be updated to make it appear selected (respectively
+                    unselected).
+        """
+
+        qt_item = element.qt_item()
+        if qt_item is not None:
+
+            if isinstance(element, Edge): # Coloring the path and the head
+                new_color = 'lightGray' if selected else 'black'
+                qt_item.setPen(QColor(new_color))
+                children = qt_item.childItems()
+                for child in children:
+                    if isinstance(child, QGraphicsPolygonItem):
+                        child.setBrush(QColor(new_color))
+                        child.setPen(QColor(new_color))
+
+            else:
+                new_color = 'lightGray' if selected else 'white'
+                qt_item.setBrush(QColor(new_color))
 
 
     def _update_color_selected_node(self, node: Node, selected: bool) -> None:
@@ -692,7 +740,8 @@ class SoTGraphScene(QGraphicsScene):
                     be updated to make it appear selected (respectively
                     unselected).
         """
-        new_color = self._selected_color if selected else self._unselected_color
+        new_color = 'lightGray' if selected else 'white'
+
         if node.qt_item() is not None:
             node.qt_item().setBrush(QColor(new_color))
 
@@ -700,6 +749,7 @@ class SoTGraphScene(QGraphicsScene):
             for port in node.ports():
                 if port.qt_item() is not None:
                     port.qt_item().setBrush(QColor(new_color))
+
 
     def get_cluster_list(self) -> List[Cluster]:
         return self._graph.clusters()
