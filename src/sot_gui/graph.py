@@ -16,6 +16,7 @@ class GraphElement:
     def __init__(self):
         self._name: str = None
         self._type: str = None
+        self._last_exec: int = None
         self._qt_item: QGraphicsItem = None
 
 
@@ -27,6 +28,12 @@ class GraphElement:
         return self._type
     def set_type(self, type: str) -> None:
         self._type = type
+
+
+    def last_exec(self) -> int:
+        return self._last_exec
+    def set_last_exec(self, last_exec: int) -> None:
+        self._last_exec = last_exec
 
 
     def qt_item(self) -> QGraphicsItem:
@@ -192,16 +199,24 @@ class Port(GraphElement):
         self._name = name
         self._type = type # 'input' or 'output'
         self._node = node
+        self._value = None
 
 
     def node(self) -> Node:
         return self._node
 
 
+    def value(self) -> Any:
+        return self._value
+    def set_value(self, value: Any) -> None:
+        self._value = value
+
+
     def edge(self) -> Edge:
         return self._edge
     def set_edge(self, edge: Edge) -> None:
         self._edge = edge
+        self.set_value(edge.value())
         if self._type == 'input':
             edge.set_head(self)
         elif self._type == 'output':
@@ -436,6 +451,14 @@ class Graph:
                 # We only handle input signals to prevent creating an edge twice
                 if plug_info['type'] == 'input':
                     self._add_signal_to_dg_data(plug_info, node)
+
+        # Getting the output values of nodes with outputs with no edges:
+        for node in self._dg_entities:
+            for port in node.outputs():
+                if port.edge() is None:
+                    value = self._dg_communication.get_signal_value(node.name(),
+                            port.name())
+                    port.set_value(value)
 
 
     def _add_signal_to_dg_data(self, plug_info: Dict[str, str], child_node: Node) -> None:

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 from enum import Enum
 import threading
 from time import sleep
@@ -11,7 +11,8 @@ from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
-from sot_gui.graph import Graph, Node, Port, Edge, InputNode, Cluster
+from sot_gui.graph import (Graph, GraphElement, Node, Port, Edge, EntityNode,
+    InputNode, Cluster, ClusterPort)
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -270,43 +271,121 @@ class InfoPanel(QDockWidget):
         super().__init__('Info panel', parent)
         self.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
 
-        element_info = dict(
-            title = 'Entity',
-            data = [ # Title and value for each section
-                ('Name', 'add1'),
-                ('Type', 'Add_of_double'),
-                ('Cluster', 'None'),
-                ('Last execution', 't = 5'),
-                (
-                    'Signals',
-                    [
-                        ('Name', 'Value'), # Titles of columns
-                        ('sin0', '12'),
-                        ('sin1', '4'),
-                        ('sout', '55.3'),
-                    ],
-                ),
-                (
-                    'Commands',
-                    [
-                        ('Name', 'Info'), # Titles of columns
-                        ('Command 1', 'Some info'),
-                        ('Command 2', 'Some info'),
-                    ],
-                ),
-            ],
-        )
 
-        self._display_element_info(element_info)
+    def _get_element_info(self, element: GraphElement) -> Dict:
+        """ Returns a dictionary containing the element data to be displayed.
+
+            Args:
+                element: The graph element whose info to return (Node, Port,
+                    Edge, Cluster or ClusterPort)
+
+            Returns:
+                A dictionary containing a 'title' element (title to give to the
+                display panel) and a 'data' element. This data is a list of
+                each section's content to display, as tuples (title, info).
+                This 'info' element can be a string (in this case it should be
+                displayed as-is, as a label) or an array of tuples (in this case
+                it should be displayed as a table, with its first element being
+                the horizontal labels).
+        """
+        if isinstance(element, EntityNode):
+            return self._get_entity_node_data(element)
+        elif isinstance(element, InputNode):
+            return self._get_input_node_data(element)
+        elif isinstance(element, Port):
+            return self._get_port_data(element)
+        elif isinstance(element, Edge):
+            return self._get_edge_data(element)
+        elif isinstance(element, Cluster):
+            return self._get_cluster_data(element)
+        raise ValueError('Could not resolve type of clicked graph element.')
 
 
-    def _display_element_info(self, element_info: Dict) -> None:
+    def _get_entity_node_data(self, node: EntityNode) -> Dict:
+        """ Returns a dictionary containing the node data to be displayed.
+            See _get_element_info for details.
+        """
+        element_info = dict()
+        element_info['title'] = 'Entity'
 
-        self._scroll_area = QScrollArea() # TODO: use QGridLayout
+        data = []
+        data.append(('Name', node.name()))
+        data.append(('Type', node.type()))
+        data.append(('Cluster', str(node.cluster())))
+        data.append(('Last execution', 't = ' + str(node.last_exec())))
+
+        signals = [('Name', 'Value')]
+        node_ports = node.ports()
+        for port in node_ports:
+            signal_value = port.value()
+            signals.append((port.name(), str(signal_value)))
+        data.append(('Signals', signals))
+
+        element_info['data'] = data
+        return element_info
+
+
+    def _get_input_node_data(self, node: InputNode) -> Dict:
+        """ Returns a dictionary containing the node data to be displayed.
+            See _get_element_info for details.
+        """
+        element_info = dict()
+        element_info['title'] = 'Input'
+
+        data = []
+        element_info['data'] = data
+
+        return element_info
+
+
+    def _get_port_data(self, port: Port) -> Dict:
+        """ Returns a dictionary containing the port data to be displayed.
+            See _get_element_info for details.
+        """
+        element_info = dict()
+        element_info['title'] = 'Port'
+
+        data = []
+        element_info['data'] = data
+
+        return element_info
+
+
+    def _get_edge_data(self, edge: Edge) -> Dict:
+        """ Returns a dictionary containing the edge data to be displayed.
+            See _get_element_info for details.
+        """
+        element_info = dict()
+        element_info['title'] = 'Signal'
+
+        data = []
+        element_info['data'] = data
+
+        return element_info
+
+
+    def _get_cluster_data(self, cluster: Cluster) -> Dict:
+        """ Returns a dictionary containing the cluster data to be displayed.
+            See _get_element_info for details.
+        """
+        element_info = dict()
+        element_info['title'] = 'Cluster'
+
+        data = []
+        element_info['data'] = data
+
+        return element_info
+
+
+    def display_element_info(self, element: GraphElement) -> None:
+
+        self._scroll_area = QScrollArea()
         self._info_widget = QWidget()
         self._layout = QVBoxLayout()
 
-        self.setWindowTitle(element_info['title'])
+        element_info = self._get_element_info(element)
+
+        self.setWindowTitle(f"Info panel: {element_info['title']}")
 
         for (title, data) in element_info['data']:
 
@@ -335,12 +414,11 @@ class InfoPanel(QDockWidget):
                 self._layout.addWidget(label)
 
         self._info_widget.setLayout(self._layout)
-
-
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setWidget(self._info_widget)
-
         self.setWidget(self._scroll_area)
+
+        self.show()
 
 
 class SoTGraphView(QGraphicsView):
@@ -391,8 +469,8 @@ class SoTGraphView(QGraphicsView):
         if self.interactionMode == self.InteractionMode.GROUP_CREATION:
             self.scene().select_item_for_group_creation(clicked_item)
         elif self.interactionMode == self.InteractionMode.DEFAULT:
-            self.parent()._info_side_panel.show()
-
+            graph_elem = self.scene().get_graph_elem_per_qt_item(clicked_item)
+            self.parent()._info_side_panel.display_element_info(graph_elem)
 
 
     #
