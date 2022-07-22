@@ -481,6 +481,18 @@ class SoTGraphView(QGraphicsView):
     def mouseReleaseEvent(self, event):
         """ See QGraphicsView.mouseReleaseEvent """
         super().mouseReleaseEvent(event)
+
+        if event.button() == Qt.LeftButton:
+            self._handle_left_click(event)
+        elif event.button() == Qt.RightButton:
+            self._handle_right_click(event)
+
+
+    #
+    # EVENT CALLBACKS
+    #
+
+    def _handle_left_click(self, event):
         click_pos = event.localPos()
         clicked_item = self.itemAt(click_pos.x(), click_pos.y())
         if clicked_item is None:
@@ -496,9 +508,9 @@ class SoTGraphView(QGraphicsView):
             self.parent()._info_side_panel.display_element_info(graph_elem)
 
 
-    #
-    # EVENT CALLBACKS
-    #
+    def _handle_right_click(self, event):
+        ...
+
 
     def _handleZoom(self, delta: int) -> None:
         """ Rescales the view according to the amount that the mouse wheel was
