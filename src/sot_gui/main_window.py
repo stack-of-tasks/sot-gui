@@ -683,6 +683,7 @@ class SoTGraphScene(QGraphicsScene):
 
     def remove_cluster(self, cluster_name: str) -> None:
         self._graph.remove_cluster(cluster_name)
+        self.clear_selection()
         self.update_display()
 
 
