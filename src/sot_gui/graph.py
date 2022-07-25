@@ -580,7 +580,7 @@ class Graph:
             output_ports = node.outputs()
             if len(output_ports) != 1:
                 raise ValueError("An InputNode should have exactly one output.")
-            output_value = node.value()
+            output_value = quoted(str(node.value()))
             dot_generator.add_node(node.name(), {'label': output_value})
 
 
@@ -686,7 +686,7 @@ class Graph:
          # The value is displayed only if the parent node isn't an InputNode:
         attributes = None
         if not isinstance(tail.node(), InputNode):
-            attributes = {'label': edge.value()}
+            attributes = {'label': quoted(str(edge.value()))}
 
         # The tail port will not be displayed if the parent node is an input
         # value
@@ -860,4 +860,3 @@ class Graph:
     def _get_cluster_for_port(self, port: Port) -> Cluster:
         """ Returns the cluster containing the given node port. """
         return port.node().cluster()
-

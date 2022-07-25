@@ -312,23 +312,60 @@ class JsonToQtGenerator:
             label in an html table.
         """
 
-        # Getting the text:
-        text_data = j.get_data_by_key_value(label_data, j.TYPE, j.T_TEXT)
-        qt_item_label = self._generate_text(text_data)
+        # Each line or differently formatted piece of text will have its own
+        # list of dictionaries
+        label_pieces_data: List[List[Dict]] = []
 
-        # Getting the font info:
-        font_data = j.get_data_by_key_value(label_data, j.TYPE, j.T_FONT)
+        # If a type of info has already been added to a list of dicts, we switch
+        # the next list
+        stored_info_types = []
 
-        # Setting its position:
-        dot_coords = (text_data[j.TEXT_POS][0], text_data[j.TEXT_POS][1])
-        qt_coords = self._dot_coords_to_qt_coords(dot_coords)
-        position = QPointF(
-            qt_coords[0] - ( (text_data[j.WIDTH] / 2) if compensate_width else 0 ),
-            qt_coords[1] - font_data[j.FONT_SIZE]
-        )
-        qt_item_label.setPos(position)
+        new_label_piece_data = []
+        for data in label_data:
 
-        return qt_item_label
+            if data[j.TYPE] in stored_info_types: # Switching to a new piece of label
+                label_pieces_data.append(new_label_piece_data)
+                new_label_piece_data = []
+                stored_info_types = []
+
+            stored_info_types.append(data[j.TYPE])
+            new_label_piece_data.append(data)
+
+        label_pieces_data.append(new_label_piece_data)
+
+
+        # The first piece of label will be the parent item, containing the other
+        # pieces of text
+        parent_qt_item = None
+
+        for label_piece_data in label_pieces_data:
+
+            # Getting the text:
+            text_data = j.get_data_by_key_value(label_piece_data, j.TYPE, j.T_TEXT)
+            new_qt_item = self._generate_text(text_data)
+
+            # Getting the font info:
+            font_data = j.get_data_by_key_value(label_piece_data, j.TYPE, j.T_FONT)
+
+            # Setting its position:
+            dot_coords = (text_data[j.TEXT_POS][0], text_data[j.TEXT_POS][1])
+            qt_coords = self._dot_coords_to_qt_coords(dot_coords)
+            position = QPointF(
+                qt_coords[0] - ( (text_data[j.WIDTH] / 2) if compensate_width else 0 ),
+                qt_coords[1] - font_data[j.FONT_SIZE]
+            )
+            new_qt_item.setPos(position)
+            print(dot_coords)
+            print(qt_coords)
+            print(position)
+            print()
+
+            if parent_qt_item is None:
+                parent_qt_item = new_qt_item
+            else:
+                new_qt_item.setParentItem(parent_qt_item)
+
+        return parent_qt_item
 
 
     #
@@ -365,7 +402,7 @@ class JsonToQtGenerator:
 
     def _generate_text(self, data: Dict[str, Any]) -> QGraphicsTextItem:
         #font = QFont('Times', 14)
-        text = QGraphicsTextItem(data[j.TEXT])
+        text = QGraphicsTextItem(data[j.TEXT].strip())
         #text.setFont(font)
         return text
 

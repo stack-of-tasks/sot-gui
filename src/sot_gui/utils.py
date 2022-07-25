@@ -3,10 +3,11 @@ from typing import Dict, List, Any
 
 def quoted(string: str) -> str:
     """ Returns a string wrapped in escaped double quotes.
-    
+
     Args:
         string: The string to wrap.
     """
+    #string = string.replace('\n', '\\n')
     return f"\"{string}\""
 
 
@@ -71,6 +72,5 @@ def get_dicts_with_element_in_list(dict_list: List[Dict], key: Any,
 
     for value in values:
         all_filtered_dicts += get_dicts_with_element(dict_list, key, value)
-    
+
     return all_filtered_dicts
-    
