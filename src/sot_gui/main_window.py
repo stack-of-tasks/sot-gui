@@ -7,7 +7,7 @@ from time import sleep
 from PySide2.QtWidgets import (QMainWindow, QGraphicsScene, QGraphicsView,
     QToolBar, QAction, QMessageBox, QLabel, QGraphicsItem, QInputDialog,
     QDockWidget, QListWidget, QListWidgetItem, QTableWidget, QTableWidgetItem,
-    QVBoxLayout, QScrollArea, QWidget, QGraphicsPolygonItem)
+    QVBoxLayout, QScrollArea, QWidget, QGraphicsPolygonItem, QStatusBar)
 from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
@@ -35,11 +35,6 @@ class MainWindow(QMainWindow):
 
         # Displaying the graph:
         self._refresh_graph()
-
-
-    def __del__(self):
-        self._kernel_heartbeat_thread.join()
-        del self._kernel_heartbeat_thread
 
 
     #
@@ -94,53 +89,9 @@ class MainWindow(QMainWindow):
 
 
     def _add_status_bar(self) -> None:
-        """ Adds a status bar to the main window.
-
-            The status bar displays the connection status. This method launches
-            a thread to monitor this status.
-        """
-        # If the kernel is stopped and relaunched, its session has changed and
-        # sending commands will result in a crash. To prevent this, we don't
-        # allow the user to send commands until they triggered a reconnection:
-        self._reconnection_needed = not self._graph_scene.is_kernel_running()
-
-        # Adding a status bar displaying the connection status:
-        self._co_status_indicator = QLabel("")
-        self.statusBar().addPermanentWidget(self._co_status_indicator)
-
-        def _connection_status_updating() -> None:
-            while 1:
-                if self._graph_scene.is_kernel_running() is False:
-                    self._reconnection_needed = True
-
-                self._update_co_status_indicator()
-                sleep(0.1)
-
-        # Launching a thread to update the connection status of the kernel:
-        self._kernel_heartbeat_thread = threading.Thread(
-            target=_connection_status_updating)
-        self._kernel_heartbeat_thread.setDaemon(True)
-        self._kernel_heartbeat_thread.start()
-
-
-    def _update_co_status_indicator(self) -> None:
-        """ Updates the text and color of the connection status indicator. """
-        if self._co_status_indicator is None:
-            return
-
-        if self._graph_scene.is_kernel_running() is False:
-            color = 'red'
-            text = 'No kernel detected'
-
-        elif self._reconnection_needed is True:
-            color = 'orange'
-            text = 'Reconnection available'
-
-        else:
-            color = 'green'
-            text = 'Connected'
-        self._co_status_indicator.setText(text)
-        self._co_status_indicator.setStyleSheet('QLabel {color: ' + color + '}')
+        """ Adds a connection status bar to the main window. """
+        status_bar = ConnectionStatusBar(self, self._graph_scene.is_kernel_running)
+        self.setStatusBar(status_bar)
 
 
     def _add_cluster_side_panel(self) -> None:
@@ -196,7 +147,7 @@ class MainWindow(QMainWindow):
             reconnection.
         """
         self._cancel_ongoing_actions()
-        if self._reconnection_needed:
+        if self.statusBar().reconnection_needed():
             self._message_box_no_connection(refresh=True)
         else:
             try:
@@ -214,7 +165,7 @@ class MainWindow(QMainWindow):
         """
         self._cancel_ongoing_actions()
         if self._graph_scene.reconnect():
-            self._reconnection_needed = False
+            self.statusBar().set_reconnection_needed(False)
         else:
             self._message_box_no_connection()
 
@@ -235,8 +186,73 @@ class MainWindow(QMainWindow):
 
 
 #
-# SIDE WIDGETS
+# OTHER WIDGETS
 #
+
+class ConnectionStatusBar(QStatusBar):
+    """ Status bar displaying the connection status thanks to a thread
+        monitoring this status.
+    """
+    def __init__(self, parent, co_check_method):
+        super().__init__(parent)
+
+        self._co_check_method = co_check_method
+
+        # If the kernel is stopped and relaunched, its session has changed and
+        # sending commands will result in a crash. To prevent this, we don't
+        # allow the user to send commands until they triggered a reconnection:
+        self._reconnection_needed = not self.kernel_is_alive()
+
+        self._co_status_indicator = QLabel("")
+        self.addPermanentWidget(self._co_status_indicator)
+
+        def connection_status_updating() -> None:
+            while 1:
+                if self.kernel_is_alive() is False:
+                    self._reconnection_needed = True
+
+                self._update_co_status_indicator()
+                sleep(0.1)
+
+        # Launching a thread to update the connection status of the kernel:
+        self._kernel_heartbeat_thread = threading.Thread(
+            target=connection_status_updating)
+        self._kernel_heartbeat_thread.setDaemon(True)
+        self._kernel_heartbeat_thread.start()
+
+
+    def _update_co_status_indicator(self) -> None:
+        """ Updates the text and color of the connection status indicator. """
+        if self.kernel_is_alive() is False:
+            color = 'red'
+            text = 'No kernel detected'
+
+        elif self._reconnection_needed is True:
+            color = 'orange'
+            text = 'Reconnection available'
+
+        else:
+            color = 'green'
+            text = 'Connected'
+
+        if self._co_status_indicator is None:
+            self._co_status_indicator.setText(text)
+            self._co_status_indicator.setStyleSheet('QLabel {color: ' + color + '}')
+
+
+    def kernel_is_alive(self) -> bool:
+        return self._co_check_method()
+
+    def reconnection_needed(self) -> bool:
+        return self._reconnection_needed
+    def set_reconnection_needed(self, reconnection_needed: bool) -> None:
+        self._reconnection_needed = reconnection_needed
+
+
+    def __del__(self):
+        self._kernel_heartbeat_thread.join()
+        del self._kernel_heartbeat_thread
+
 
 class ClustersPanel(QDockWidget):
     def __init__(self, parent):
