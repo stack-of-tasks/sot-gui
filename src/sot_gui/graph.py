@@ -568,7 +568,7 @@ class Graph:
         """ Adds all of the graph's input nodes to the given dot data generator. """
 
         # From now on, every added node will be round:
-        dot_generator.set_node_attributes({'shape': 'circle'})
+        dot_generator.set_node_attributes({'shape': 'ellipse'})
 
         # For every input, we only display a node (and not its output port):
         for node in self._input_nodes:
