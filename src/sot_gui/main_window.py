@@ -270,7 +270,7 @@ class ClustersPanel(QDockWidget):
 
 
     def add_cluster(self, cluster: Cluster) -> None:
-        item = QListWidgetItem(cluster.name())
+        item = QListWidgetItem(cluster.label())
         self._list_widget.addItem(item)
 
 
@@ -279,8 +279,8 @@ class ClustersPanel(QDockWidget):
         for item in selected_items:
             item_row = self._list_widget.indexFromItem(item).row()
             self._list_widget.takeItem(item_row)
-            cluster_name = item.text()
-            self.parent()._view.scene().remove_cluster(cluster_name)
+            cluster_label = item.text()
+            self.parent()._view.scene().remove_cluster(cluster_label)
 
 
 class InfoPanel(QDockWidget):
@@ -328,7 +328,10 @@ class InfoPanel(QDockWidget):
         data = []
         data.append(('Name', node.name()))
         data.append(('Type', node.type()))
-        data.append(('Cluster', str(node.cluster())))
+
+        cluster = node.cluster()
+        cluster_label = cluster.label() if cluster is not None else "None"
+        data.append(('Cluster', cluster_label))
 
         signals = [['Name', 'Value', 'Last execution']]
         node_ports = node.ports()
@@ -353,9 +356,9 @@ class InfoPanel(QDockWidget):
         linked_node = node.child_node()
         linked_port = node.child_port()
         cluster = linked_node.cluster()
-        cluster_name = cluster.name() if cluster is not None else "None"
+        cluster_label = cluster.label() if cluster is not None else "None"
         data.append(('Input of', f"{linked_node.name()}:{linked_port.name()}"
-                    f"(Cluster: {cluster_name})"))
+                    f" (Cluster: {cluster_label})"))
 
         data.append(('Value', f"{str(node.value())} ({node.type()})"))
         data.append(('Cluster', str(node.cluster())))
@@ -383,8 +386,8 @@ class InfoPanel(QDockWidget):
             cluster = port.node().cluster()
 
         node_name = node.name()
-        cluster_name = cluster.name() if cluster is not None else "None"
-        data.append(('Node', f"{node_name} (Cluster: {cluster_name})"))
+        cluster_label = cluster.label() if cluster is not None else "None"
+        data.append(('Node', f"{node_name} (Cluster: {cluster_label})"))
 
         data.append(('Value', port.value()))
 
@@ -399,10 +402,10 @@ class InfoPanel(QDockWidget):
         else:
             linked_node = port.plugged_node()
             linked_cluster = linked_node.cluster()
-            linked_cluster_name = (linked_cluster.name() if linked_cluster
+            linked_cluster_label = (linked_cluster.label() if linked_cluster
                                     is not None else "None")
             data.append(('Linked to', f"{linked_node.name()}:"
-                    f"{linked_port.name()} (Cluster: {linked_cluster_name})"))
+                    f"{linked_port.name()} (Cluster: {linked_cluster_label})"))
 
         data.append(('Last execution', port.last_exec()))
 
@@ -425,16 +428,16 @@ class InfoPanel(QDockWidget):
             data.append(('Tail', 'Fixed value'))
         else:
             tail_cluster = edge.tail_node().cluster()
-            tail_cluster_name = (tail_cluster.name() if tail_cluster is not None
-                                else "None")
+            tail_cluster_label = (tail_cluster.label() if tail_cluster is not
+                                None else "None")
             data.append(('Tail', f"{tail_node.name()}:{edge.tail().name()} "
-                        f"(Cluster: {tail_cluster_name})"))
+                        f"(Cluster: {tail_cluster_label})"))
 
         head_cluster = edge.head_node().cluster()
-        head_cluster_name = (head_cluster.name() if head_cluster is not None
+        head_cluster_label = (head_cluster.label() if head_cluster is not None
                             else "None")
         data.append(('Head', f"{edge.head_node().name()}:{edge.head().name()} "
-                    f"(Cluster: {head_cluster_name})"))
+                    f"(Cluster: {head_cluster_label})"))
 
         data.append(('Value', str(edge.value())))
         data.append(('Last execution', f"t = {edge.last_exec()}"))
@@ -452,7 +455,7 @@ class InfoPanel(QDockWidget):
         element_info['title'] = 'Cluster'
 
         data = []
-        data.append(('Name', cluster.name()))
+        data.append(('Name', cluster.label()))
 
         signals = [['Name', 'Node', 'Value', 'Last execution']]
         ports = cluster.ports()
@@ -769,8 +772,8 @@ class SoTGraphScene(QGraphicsScene):
         return new_cluster
 
 
-    def remove_cluster(self, cluster_name: str) -> None:
-        self._graph.remove_cluster(cluster_name)
+    def remove_cluster(self, cluster_label: str) -> None:
+        self._graph.remove_cluster(cluster_label)
         self.clear_selection()
         self.update_display()
 

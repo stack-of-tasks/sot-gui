@@ -151,9 +151,16 @@ class EntityNode(Node):
 
 
 class Cluster(Node):
-    def __init__(self, name: str, nodes: List[Node]):
+    # Not the number or existing clusters, but the number of clusters ever created:
+    clusters_creation_count = 0
+
+    def __init__(self, label: str, nodes: List[Node]):
         super().__init__()
-        self._name: str = name
+
+        self._name: str = str(Cluster.clusters_creation_count)
+        Cluster.clusters_creation_count += 1
+
+        self._label: str = label
         self._nodes: List[Node] = nodes
         self._expanded: bool = False
         self._qt_item: QGraphicsItem = None
@@ -193,7 +200,8 @@ class Cluster(Node):
 
     def nodes(self) -> List[Node]:
         return self._nodes.copy()
-
+    def label(self) -> str:
+        return self._label
     def is_expanded(self) -> bool:
         return self._expanded
 
@@ -385,9 +393,9 @@ class Graph:
         return new_cluster
 
 
-    def remove_cluster(self, name: str) -> None:
+    def remove_cluster(self, label: str) -> None:
         for index, cluster in enumerate(self._clusters):
-            if cluster.name() == name:
+            if cluster.label() == label:
                 for node in cluster.nodes():
                     node.set_cluster(None)
                 self._clusters.pop(index)
@@ -648,8 +656,8 @@ class Graph:
             else:
                 inputs = [port.name() for port in cluster.inputs()]
                 outputs = [port.name() for port in cluster.outputs()]
-                name = cluster.name()
-                dot_generator.add_html_node(name, (inputs, outputs), name)
+                dot_generator.add_html_node(cluster.name(), (inputs, outputs),
+                                            cluster.label())
 
 
     def _add_edges_to_dot_code(self, dot_generator: DotDataGenerator):
