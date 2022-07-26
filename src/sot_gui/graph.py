@@ -1,10 +1,9 @@
 from __future__ import annotations # To prevent circular dependencies of typing
-from typing import List, Any, Dict, Union, Tuple
+from typing import List, Any, Dict, Union
 from subprocess import Popen, PIPE
 from copy import deepcopy
 
 from PySide2.QtWidgets import QGraphicsItem
-from numpy import isin
 
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 from sot_gui.dot_data_generator import DotDataGenerator
@@ -132,6 +131,13 @@ class InputNode(Node):
         return self.outputs()[0].value()
     def type(self) -> type:
         return self._type
+    def port(self) -> Port:
+        return self._outputs[0]
+
+    def child_port(self) -> Port:
+        return self.port().edge().head()
+    def child_node(self) -> Node:
+        return self.child_port().node()
 
 
 class EntityNode(Node):

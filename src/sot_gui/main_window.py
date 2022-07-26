@@ -350,7 +350,13 @@ class InfoPanel(QDockWidget):
         element_info['title'] = 'Input'
 
         data = []
-        data.append(('Name', node.name()))
+        linked_node = node.child_node()
+        linked_port = node.child_port()
+        cluster = linked_node.cluster()
+        cluster_name = cluster.name() if cluster is not None else "None"
+        data.append(('Input of', f"{linked_node.name()}:{linked_port.name()}"
+                    f"(Cluster: {cluster_name})"))
+
         data.append(('Value', f"{str(node.value())} ({node.type()})"))
         data.append(('Cluster', str(node.cluster())))
 
@@ -370,13 +376,14 @@ class InfoPanel(QDockWidget):
         data.append(('Name', port.name()))
 
         if isinstance(port, ClusterPort):
-            node_name = port.node_port().node().name()
-            cluster_name = port.node().name()
+            node = port.node_port().node()
+            cluster = port.node()
         else:
-            node_name = port.node().name()
+            node = port.node()
             cluster = port.node().cluster()
-            cluster_name = cluster.name() if cluster is not None else "None"
 
+        node_name = node.name()
+        cluster_name = cluster.name() if cluster is not None else "None"
         data.append(('Node', f"{node_name} (Cluster: {cluster_name})"))
 
         data.append(('Value', port.value()))
@@ -385,6 +392,10 @@ class InfoPanel(QDockWidget):
         linked_port = port.plugged_port()
         if linked_port is None:
             data.append(('Linked to', 'None'))
+
+        elif isinstance(port.plugged_node(), InputNode):
+            data.append(('Linked to', 'Fixed value'))
+
         else:
             linked_node = port.plugged_node()
             linked_cluster = linked_node.cluster()
@@ -409,11 +420,15 @@ class InfoPanel(QDockWidget):
 
         data = []
 
-        tail_cluster = edge.tail_node().cluster()
-        tail_cluster_name = (tail_cluster.name() if tail_cluster is not None
-                            else "None")
-        data.append(('Tail', f"{edge.tail_node().name()}:{edge.tail().name()} "
-                    f"(Cluster: {tail_cluster_name})"))
+        tail_node = edge.tail_node()
+        if isinstance(tail_node, InputNode):
+            data.append(('Tail', 'Fixed value'))
+        else:
+            tail_cluster = edge.tail_node().cluster()
+            tail_cluster_name = (tail_cluster.name() if tail_cluster is not None
+                                else "None")
+            data.append(('Tail', f"{tail_node.name()}:{edge.tail().name()} "
+                        f"(Cluster: {tail_cluster_name})"))
 
         head_cluster = edge.head_node().cluster()
         head_cluster_name = (head_cluster.name() if head_cluster is not None
