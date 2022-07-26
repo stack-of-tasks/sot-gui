@@ -7,7 +7,6 @@ def quoted(string: str) -> str:
     Args:
         string: The string to wrap.
     """
-    #string = string.replace('\n', '\\n')
     return f"\"{string}\""
 
 
