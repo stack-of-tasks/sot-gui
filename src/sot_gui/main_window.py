@@ -444,6 +444,7 @@ class InfoPanel(QDockWidget):
                 for line_idx, table_line in enumerate(data[1:]):
                     for col_idx, table_elem in enumerate(table_line):
                         new_item = QTableWidgetItem(table_elem)
+                        new_item.setToolTip(table_elem)
                         table_info.setItem(line_idx, col_idx, new_item)
 
             else: # Text section

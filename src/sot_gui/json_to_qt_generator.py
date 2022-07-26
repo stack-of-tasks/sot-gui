@@ -365,7 +365,7 @@ class JsonToQtGenerator:
                             qt_coords[1] - parent_qt_coords[1])
                 position = QPointF(
                     qt_coords[0],
-                    qt_coords[1],
+                    qt_coords[1] + 2,
                 )
                 new_qt_item.setPos(position)
                 new_qt_item.setParentItem(parent_qt_item)
