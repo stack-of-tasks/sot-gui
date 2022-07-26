@@ -232,13 +232,20 @@ class Port(GraphElement):
             raise ValueError("Port type must be either 'input' or 'output'")
 
 
-    def plugged_node(self) -> Node:
+    def plugged_port(self) -> Port:
         edge = self.edge()
         if edge is not None:
             if self.type() == 'input':
-                return edge.tail_node()
+                return edge.tail()
             else:
-                return edge.head_node()
+                return edge.head()
+        return None
+
+
+    def plugged_node(self) -> Node:
+        plugged_port = self.plugged_port()
+        if plugged_port is not None:
+            return plugged_port.node()
         return None
 
 

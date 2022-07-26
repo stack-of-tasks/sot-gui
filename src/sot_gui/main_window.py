@@ -12,7 +12,7 @@ from PySide2.QtGui import QColor
 from PySide2.QtCore import Qt
 
 from sot_gui.graph import (Graph, GraphElement, Node, Port, Edge, EntityNode,
-    InputNode, Cluster)
+    InputNode, Cluster, ClusterPort)
 from sot_gui.dynamic_graph_communication import DynamicGraphCommunication
 
 
@@ -367,6 +367,34 @@ class InfoPanel(QDockWidget):
         element_info['title'] = 'Port'
 
         data = []
+        data.append(('Name', port.name()))
+
+        if isinstance(port, ClusterPort):
+            node_name = port.node_port().node().name()
+            cluster_name = port.node().name()
+        else:
+            node_name = port.node().name()
+            cluster = port.node().cluster()
+            cluster_name = cluster.name() if cluster is not None else "None"
+
+        data.append(('Node', f"{node_name} (Cluster: {cluster_name})"))
+
+        data.append(('Value', port.value()))
+
+        # Names of linked node, port, and their cluster:
+        linked_port = port.plugged_port()
+        if linked_port is None:
+            data.append(('Linked to', 'None'))
+        else:
+            linked_node = port.plugged_node()
+            linked_cluster = linked_node.cluster()
+            linked_cluster_name = (linked_cluster.name() if linked_cluster
+                                    is not None else "None")
+            data.append(('Linked to', f"{linked_node.name()}:"
+                    f"{linked_port.name()} (Cluster: {linked_cluster_name})"))
+
+        data.append(('Last execution', port.last_exec()))
+
         element_info['data'] = data
 
         return element_info
@@ -380,6 +408,22 @@ class InfoPanel(QDockWidget):
         element_info['title'] = 'Signal'
 
         data = []
+
+        tail_cluster = edge.tail_node().cluster()
+        tail_cluster_name = (tail_cluster.name() if tail_cluster is not None
+                            else "None")
+        data.append(('Tail', f"{edge.tail_node().name()}:{edge.tail().name()} "
+                    f"(Cluster: {tail_cluster_name})"))
+
+        head_cluster = edge.head_node().cluster()
+        head_cluster_name = (head_cluster.name() if head_cluster is not None
+                            else "None")
+        data.append(('Head', f"{edge.head_node().name()}:{edge.head().name()} "
+                    f"(Cluster: {head_cluster_name})"))
+
+        data.append(('Value', str(edge.value())))
+        data.append(('Last execution', f"t = {edge.last_exec()}"))
+
         element_info['data'] = data
 
         return element_info
