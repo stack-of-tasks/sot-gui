@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
         toolbar.addAction(button_reconnect)
 
         button_clusterize = QAction("Create cluster", self)
-        button_clusterize.triggered.connect(self._create_entity_group)
+        button_clusterize.triggered.connect(self._create_cluster)
         toolbar.addAction(button_clusterize)
 
         button_manage_clusters = QAction("Manage clusters", self)
@@ -71,11 +71,11 @@ class MainWindow(QMainWindow):
         self._cluster_toolbar = toolbar
 
         button_complete = QAction("Confirm cluster", self)
-        button_complete.triggered.connect(self._view._completeGroupCreation)
+        button_complete.triggered.connect(self._view._completeClusterCreation)
         toolbar.addAction(button_complete)
 
         button_cancel = QAction("Cancel clusterization", self)
-        button_cancel.triggered.connect(self._view.cancelGroupCreation)
+        button_cancel.triggered.connect(self._view.cancelClusterCreation)
         toolbar.addAction(button_cancel)
 
         # This toolbar will only be shown during cluster creation
@@ -170,15 +170,15 @@ class MainWindow(QMainWindow):
             self._message_box_no_connection()
 
 
-    def _create_entity_group(self) -> None:
-        """ Launches the creation of an entity group. """
-        self._view.enter_group_creation_mode()
+    def _create_cluster(self) -> None:
+        """ Launches the creation of a cluster. """
+        self._view.enter_cluster_creation_mode()
 
 
     def _cancel_ongoing_actions(self) -> None:
         if (self._view.interactionMode ==
-            SoTGraphView.InteractionMode.GROUP_CREATION):
-            self._view.cancelGroupCreation()
+            SoTGraphView.InteractionMode.CLUSTER_CREATION):
+            self._view.cancelClusterCreation()
 
 
     def _manage_clusters(self) -> None:
@@ -540,10 +540,10 @@ class SoTGraphView(QGraphicsView):
     class InteractionMode(Enum):
         """ This enum is used to determine how to handle events based on there
             being an ongoing user action or not (e.g when the user creates a
-            group of entities, a click on a node must be handled differently)
+            cluster, a click on a node must be handled differently)
         """
         DEFAULT = 0
-        GROUP_CREATION = 1 # When the user is creating a group of entities
+        CLUSTER_CREATION = 1 # When the user is creating a group of entities
 
 
     #
@@ -578,8 +578,8 @@ class SoTGraphView(QGraphicsView):
             return
         #print(self.scene().get_graph_elem_per_qt_item(clicked_item))
 
-        if self.interactionMode == self.InteractionMode.GROUP_CREATION:
-            self.scene().select_item_for_group_creation(clicked_item)
+        if self.interactionMode == self.InteractionMode.CLUSTER_CREATION:
+            self.scene().select_item_for_cluster_creation(clicked_item)
         elif self.interactionMode == self.InteractionMode.DEFAULT:
             graph_elem = self.scene().get_graph_elem_per_qt_item(clicked_item)
             self.scene().clear_selection()
@@ -606,42 +606,52 @@ class SoTGraphView(QGraphicsView):
             self.scale(0.8, 0.8)
 
 
-    def enter_group_creation_mode(self) -> None:
-        """ TODO """
-        if self.interactionMode != self.InteractionMode.GROUP_CREATION:
+    def enter_cluster_creation_mode(self) -> None:
+        if self.interactionMode != self.InteractionMode.CLUSTER_CREATION:
             self.scene().clear_selection()
             self.parent().show_cluster_toolbar()
-            self.interactionMode = self.InteractionMode.GROUP_CREATION
-    def exit_group_creation_mode(self) -> None:
-        """ TODO """
+            self.interactionMode = self.InteractionMode.CLUSTER_CREATION
+    def exit_cluster_creation_mode(self) -> None:
         self.interactionMode = self.InteractionMode.DEFAULT
         self.parent().hide_cluster_toolbar()
         self.scene().clear_selection()
 
 
-    def _completeGroupCreation(self) -> None:
+    def _completeClusterCreation(self) -> None:
         # If clusterizing the selected nodes is not possible, we let the user
         # keep on selecting:
         if self.scene().check_clusterizability() is False:
-            self._message_box_wrong_cluster()
+            self._message_box_wrong_nodes_for_cluster()
             return
 
-        # Else, we let them enter the name of the group in a dialog box:
-        group_name, clicked_ok = QInputDialog().getText(self, 'Group name',
-                                'Please enter a name for this entity group.')
+        # Else, we let them enter the label of the cluster in a dialog box,
+        # displaying a message if the label is already used by another cluster:
 
-        if clicked_ok:
-            new_cluster = self.scene().complete_group_creation(group_name)
-            self.parent()._cluster_side_panel.add_cluster(new_cluster)
-            self.exit_group_creation_mode()
-        # If the user canceled, we let them keep on selecting
+        label = None
+        while label is None:
+            label, clicked_ok = QInputDialog().getText(self, 'Cluster label',
+                                    'Please enter a label for this cluster.')
+
+            if clicked_ok:
+                if not self.scene().is_cluster_label_available(label):
+                    label = None
+                    self._message_box_wrong_cluster_label()
+                    continue
+
+                new_cluster = self.scene().complete_cluster_creation(label)
+                self.parent()._cluster_side_panel.add_cluster(new_cluster)
+                self.exit_cluster_creation_mode()
+
+            else: # If the user canceled, we let them keep on selecting
+                return
 
 
-    def cancelGroupCreation(self) -> None:
-        self.exit_group_creation_mode()
+
+    def cancelClusterCreation(self) -> None:
+        self.exit_cluster_creation_mode()
 
 
-    def _message_box_wrong_cluster(self) -> None:
+    def _message_box_wrong_nodes_for_cluster(self) -> None:
         """ Displays a message box to tell the user that the current selection
             is sot suitable to create a cluster.
         """
@@ -653,6 +663,22 @@ class SoTGraphView(QGraphicsView):
                             "selected nodes.")
         message_box.setInformativeText('Please select:\n  - at least two nodes'
                                         '\n  - only directly linked nodes')
+        message_box.exec_()
+
+
+    def _message_box_wrong_cluster_label(self) -> None:
+        """ Displays a message box to tell the user that the label they chose
+            for a cluster is already used by another cluster.
+        """
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("Label unavailable")
+
+        # Asking the user if they want to reconnect and refresh:
+        message_box.setText("This label is already assigned to another existing"
+            " cluster.")
+        message_box.setInformativeText("Please enter another label for this new"
+            " cluster.\nThe list of all clusters names can be displayed by"
+            " clicking on 'Manage clusters'.")
         message_box.exec_()
 
 
@@ -715,7 +741,7 @@ class SoTGraphScene(QGraphicsScene):
         return self._dg_communication.connect_to_kernel()
 
 
-    def select_item_for_group_creation(self, item: QGraphicsItem) -> None:
+    def select_item_for_cluster_creation(self, item: QGraphicsItem) -> None:
         selected_node = None
         graph_elem = self.get_graph_elem_per_qt_item(item)
 
@@ -765,8 +791,8 @@ class SoTGraphScene(QGraphicsScene):
             self._update_color_selected_node(node, True)
 
 
-    def complete_group_creation(self, group_name: str) -> Cluster:
-        new_cluster = self._graph.add_cluster(group_name,
+    def complete_cluster_creation(self, cluster_label: str) -> Cluster:
+        new_cluster = self._graph.add_cluster(cluster_label,
                                               self._selected_nodes.copy())
         self.update_display()
         return new_cluster
@@ -847,8 +873,16 @@ class SoTGraphScene(QGraphicsScene):
         return self._graph.clusters()
 
 
+    def is_cluster_label_available(self, label: str) -> None:
+        clusters = self.get_cluster_list()
+
+        for cluster in clusters:
+            if cluster.label() == label:
+                return False
+        return True
+
+
     def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \
         -> Union[Node, Port, Edge]:
-        """ TODO """
         graph_elem = self._graph.get_elem_per_qt_item(item)
         return graph_elem

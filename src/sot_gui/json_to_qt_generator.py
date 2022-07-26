@@ -291,7 +291,6 @@ class JsonToQtGenerator:
         if spline_data is None or spline_data.get(j.POINTS) is None:
             return None
         curve = self._generate_spline(spline_data.get(j.POINTS))
-        # TODO: add an additional path to QPainterPath if there are several bezier curves
 
         # Getting the head and setting the curve as its parent:
         head_data = j.get_data_by_key_value(edge_data.get(j.HEAD_DRAW), j.TYPE, j.T_POLYGON)
@@ -494,7 +493,7 @@ class JsonToQtGenerator:
 
         Raises:
             RuntimeError: The json data contains info on a node with less than
-                3 cells
+                2 cells
         """
 
         if j.OBJECTS not in self._graph_data: # If the graph is empty
