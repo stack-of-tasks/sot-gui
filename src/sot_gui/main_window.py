@@ -261,10 +261,15 @@ class ClustersPanel(QDockWidget):
 
         self._list_widget = QListWidget(self)
         self.setWidget(self._list_widget)
+
+        # Setting the context menu options (right click on the item)
         option_delete = QAction("Delete", self)
         option_delete.triggered.connect(self._remove_clusters)
+        option_infos = QAction("Display informations", self)
+        option_infos.triggered.connect(self._display_cluster_info)
 
         self._list_widget.addAction(option_delete)
+        self._list_widget.addAction(option_infos)
         self._list_widget.setContextMenuPolicy(Qt.ActionsContextMenu)
         self._list_widget.setSortingEnabled(True)
 
@@ -274,13 +279,28 @@ class ClustersPanel(QDockWidget):
         self._list_widget.addItem(item)
 
 
-    def _remove_clusters(self) -> None:
+    def _get_selected_item(self) -> str:
         selected_items = self._list_widget.selectedItems()
+        return selected_items[0]
+
+
+    def _get_selected_items(self) -> str:
+        selected_items = self._list_widget.selectedItems()
+        return selected_items
+
+
+    def _remove_clusters(self) -> None:
+        selected_items = self._get_selected_items()
         for item in selected_items:
             item_row = self._list_widget.indexFromItem(item).row()
             self._list_widget.takeItem(item_row)
             cluster_label = item.text()
             self.parent()._view.scene().remove_cluster(cluster_label)
+
+
+    def _display_cluster_info(self) -> None:
+        selected_item = self._get_selected_item()
+        self.parent()._view.display_cluster_info(selected_item.text())
 
 
 class InfoPanel(QDockWidget):
@@ -582,9 +602,19 @@ class SoTGraphView(QGraphicsView):
             self.scene().select_item_for_cluster_creation(clicked_item)
         elif self.interactionMode == self.InteractionMode.DEFAULT:
             graph_elem = self.scene().get_graph_elem_per_qt_item(clicked_item)
-            self.scene().clear_selection()
-            self.scene().update_selected_elements(graph_elem)
-            self.parent()._info_side_panel.display_element_info(graph_elem)
+            self._display_element_info(graph_elem)
+
+
+    def _display_element_info(self, element: GraphElement) -> None:
+        self.scene().clear_selection()
+        self.scene().update_selected_elements(element)
+        self.parent()._info_side_panel.display_element_info(element)
+
+
+    def display_cluster_info(self, cluster_label: str) -> None:
+        cluster = self.scene().get_cluster_per_label(cluster_label)
+        if cluster is not None:
+            self._display_element_info(cluster)
 
 
     def _handle_right_click(self, event):
@@ -873,13 +903,22 @@ class SoTGraphScene(QGraphicsScene):
         return self._graph.clusters()
 
 
-    def is_cluster_label_available(self, label: str) -> None:
+    def is_cluster_label_available(self, label: str) -> bool:
         clusters = self.get_cluster_list()
 
         for cluster in clusters:
             if cluster.label() == label:
                 return False
         return True
+
+
+    def get_cluster_per_label(self, label: str) -> Cluster:
+        clusters = self.get_cluster_list()
+
+        for cluster in clusters:
+            if cluster.label() == label:
+                return cluster
+        return None
 
 
     def get_graph_elem_per_qt_item(self, item: QGraphicsItem) \
