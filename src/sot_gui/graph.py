@@ -162,8 +162,12 @@ class Cluster(Node):
 
         self._label: str = label
         self._nodes: List[Node] = nodes
-        self._expanded: bool = False
         self._qt_item: QGraphicsItem = None
+
+        # If the cluster is shrinked, it is displayed as a single node. If it is
+        # expanded, it is displayed as a subgraph (section of the graph bounded
+        # by a rectangle):
+        self._expanded: bool = False
 
         # The cluster's ports are its nodes' ports that are not linked to a node
         # in the same cluster
@@ -206,6 +210,7 @@ class Cluster(Node):
         return self._expanded
 
     def get_cluster_port_per_node_port(self, port: Port) -> ClusterPort | None:
+        """ TODO """
         for cluster_port in self.ports():
             if cluster_port.node_port() == port:
                 return cluster_port
@@ -394,6 +399,7 @@ class Graph:
 
 
     def remove_cluster(self, label: str) -> None:
+        """ TODO """
         for index, cluster in enumerate(self._clusters):
             if cluster.label() == label:
                 for node in cluster.nodes():
@@ -492,7 +498,9 @@ class Graph:
                     port.set_last_exec(last_exec)
 
 
-    def _add_signal_to_dg_data(self, plug_info: Dict[str, str], child_node: Node) -> None:
+    def _add_signal_to_dg_data(self, plug_info: Dict[str, str],
+                                child_node: Node) -> None:
+        """ TODO """
         sig_name = plug_info['name']
         child_node_name = child_node.name()
 
@@ -696,6 +704,7 @@ class Graph:
 
     def _add_edge_to_dot_code(self, edge: Edge, head: Port, tail: Port,
                               dot_generator: DotDataGenerator) -> None:
+        """ TODO """
 
         child_port_name = head.name()
         child_node_name = head.node().name()
@@ -790,6 +799,7 @@ class Graph:
 
 
     def _clear_qt_items(self) -> None:
+        """ TODO """
         nodes = self._dg_entities + self._input_nodes + self._clusters
         for node in nodes:
             node.set_qt_item(None)
