@@ -210,7 +210,6 @@ class Cluster(Node):
         return self._expanded
 
     def get_cluster_port_per_node_port(self, port: Port) -> ClusterPort | None:
-        """ TODO """
         for cluster_port in self.ports():
             if cluster_port.node_port() == port:
                 return cluster_port
@@ -218,6 +217,9 @@ class Cluster(Node):
 
 
 class Port(GraphElement):
+    """ This class represents a node's port, where a signal can be plugged to
+        the node.
+    """
     def __init__(self, name: str, type: str, node: Node):
         super().__init__()
         self._edge = None
@@ -269,6 +271,10 @@ class Port(GraphElement):
 
 
 class ClusterPort(Port):
+    """ This class represents a cluster port. Each node port of a cluster which
+        is linked to a node external to the cluster will be considered as a
+        cluster port.
+    """
     def __init__(self, node_port: Port, node: Cluster):
         super().__init__(None, None, None)
         self._name = f"{node_port.node().name()}_{node_port.name()}"
@@ -399,7 +405,13 @@ class Graph:
 
 
     def remove_cluster(self, label: str) -> None:
-        """ TODO """
+        """ Deletes a cluster from the graph elements.
+
+            All the elements it contains are kept, only the cluster is deleted.
+
+            Args:
+                label: label of the cluster to remove.
+        """
         for index, cluster in enumerate(self._clusters):
             if cluster.label() == label:
                 for node in cluster.nodes():
@@ -500,7 +512,14 @@ class Graph:
 
     def _add_signal_to_dg_data(self, plug_info: Dict[str, str],
                                 child_node: Node) -> None:
-        """ TODO """
+        """ Adds a signal to the dynamic graph data stored in this object.
+
+            Args:
+                plug_info: data on the signal (see _parse_signal_description for
+                    details).
+                child_node: head node of the signal, i.e the node having this
+                    signal as an input.
+        """
         sig_name = plug_info['name']
         child_node_name = child_node.name()
 
@@ -704,7 +723,16 @@ class Graph:
 
     def _add_edge_to_dot_code(self, edge: Edge, head: Port, tail: Port,
                               dot_generator: DotDataGenerator) -> None:
-        """ TODO """
+        """ Adds an edge to a dot code generator.
+
+            Args:
+                edge: the edge to add.
+                head: the head port of the edge, i.e the node input plugged to
+                    this edge.
+                tail: the tail port of the edge, i.e the node output plugged to
+                    this edge.
+                dot_generator: the DotDataGenerator to add the edge to.
+        """
 
         child_port_name = head.name()
         child_node_name = head.node().name()
@@ -799,7 +827,7 @@ class Graph:
 
 
     def _clear_qt_items(self) -> None:
-        """ TODO """
+        """ Clears all of the graph elements' qt items. """
         nodes = self._dg_entities + self._input_nodes + self._clusters
         for node in nodes:
             node.set_qt_item(None)
