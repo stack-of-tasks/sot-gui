@@ -164,7 +164,7 @@ class Cluster(Node):
         self._nodes: List[Node] = nodes
         self._qt_item: QGraphicsItem = None
 
-        # If the cluster is shrinked, it is displayed as a single node. If it is
+        # If the cluster is shrunk, it is displayed as a single node. If it is
         # expanded, it is displayed as a subgraph (section of the graph bounded
         # by a rectangle):
         self._expanded: bool = False
@@ -709,7 +709,7 @@ class Graph:
                 head_port: Port = port
                 tail_port: Port = edge.tail()
 
-                # If the tail is in a shrinked cluster, we link the edge to the
+                # If the tail is in a shrunk cluster, we link the edge to the
                 # cluster port instead of the node port:
                 tail_cluster: Cluster = self._get_cluster_for_port(tail_port)
                 if tail_cluster is not None and not tail_cluster.is_expanded():
@@ -793,7 +793,7 @@ class Graph:
                 node.set_qt_item(qt_item_node)
                 continue
 
-            # If it's an EntityNode or a shrinked Cluster, the qt item
+            # If it's an EntityNode or a shrunk Cluster, the qt item
             # corresponding to the node is the middle column of the html table
             # (i.e the node's label)
             no_input = node.inputs() == []
