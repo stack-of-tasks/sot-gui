@@ -385,7 +385,7 @@ class Graph:
 
     def refresh_graph_data(self):
         """ This function updates the graph by fetching the dynamic graph's data,
-            generating a new graph layout with dot and creating the needed qt items.
+            without generating a new graph layout nor creating the needed qt items.
             Raises a ConnectionError if there is no connection to the kernel.
         """
         self._clear_dg_data()
