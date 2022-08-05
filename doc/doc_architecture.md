@@ -1,6 +1,6 @@
 # Architecture of SoT GUI
 
-SoT GUI uses the sot-ipython-connection package to get data from the Stack of Tasks. It uses dot to compute the graph layout, and displays it in a window thanks to PySide (python binding for Qt).
+SoT GUI uses the [sot-ipython-connection package](https://github.com/stack-of-tasks/sot-ipython-connection) to get data from the Stack of Tasks. It uses dot to compute the graph layout, and displays it in a window thanks to PySide (python binding for Qt).
 The overall architecture of the program can be seen on Fig.1.
 
 ![](https://github.com/justinefricou/sot-gui/blob/main/doc/img/sot-gui-architecture.png)
